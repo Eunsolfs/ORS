@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}总览填报 {{ target_date }} - ORS{% endblock %}
+{% block content %}
+<div class="topbar">
+  <div class="topbar-title">一、总览（台数/备注）</div>
+  <div class="topbar-actions">
+    <a class="btn ghost" href="{% if is_today %}{% url 'handover_fill_today' dept_code=dept_code %}{% else %}{% url 'handover_fill_by_date' dept_code=dept_code date=target_date %}{% endif %}">返回</a>
+    <button class="btn primary" form="summaryForm" type="submit">保存</button>
+  </div>
+</div>
+
+<div class="container">
+  <form id="summaryForm" method="post" class="card form">
+    {% csrf_token %}
+    <div class="grid2">
+      <div class="field">
+        <label class="label">择期（台）</label>
+        {{ form.elective_count }}
+      </div>
+      <div class="field">
+        <label class="label">急诊（台）</label>
+        {{ form.emergency_count }}
+      </div>
+      <div class="field">
+        <label class="label">特殊情况/抢救（台）</label>
+        {{ form.rescue_count }}
+      </div>
+    </div>
+    <div class="field">
+      <label class="label">备注</label>
+      {{ form.notes }}
+    </div>
+  </form>
+</div>
+{% endblock %}

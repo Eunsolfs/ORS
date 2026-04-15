@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}交班分项填报 {{ target_date }} - ORS{% endblock %}
+{% block content %}
+<div class="topbar">
+  <div class="topbar-title">交班分项填报 {{ target_date }}</div>
+  <div class="topbar-actions">
+    <a class="btn ghost" href="{% if is_today %}{% url 'handover_today' dept_code=dept_code %}{% else %}{% url 'handover_by_date' dept_code=dept_code date=target_date %}{% endif %}">返回查看</a>
+  </div>
+</div>
+
+<div class="container">
+  <div class="card" style="margin-bottom:12px;">
+    <div class="card-title">请选择填报项目</div>
+    <div class="card-sub">每项可独立进入、保存、再次编辑。</div>
+  </div>
+
+  <div class="card" style="margin-bottom:12px;">
+    <div class="card-title">一、总览</div>
+    <div class="card-sub">状态：{% if top_filled %}已填报{% else %}未填报{% endif %}</div>
+    <div style="margin-top:10px; text-align:center;">
+      <a class="btn primary" href="{% if is_today %}{% url 'handover_fill_section_today' dept_code=dept_code section='top' %}{% else %}{% url 'handover_fill_section_by_date' dept_code=dept_code date=target_date section='top' %}{% endif %}">
+        进入总览填报
+      </a>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:12px;">
+    <div class="card-title">二、检查项</div>
+    <div class="card-sub">状态：{% if checks_filled %}已填报{% else %}未填报{% endif %}</div>
+    <div style="margin-top:10px; text-align:center;">
+      <a class="btn primary" href="{% if is_today %}{% url 'handover_fill_section_today' dept_code=dept_code section='checks' %}{% else %}{% url 'handover_fill_section_by_date' dept_code=dept_code date=target_date section='checks' %}{% endif %}">
+        进入检查项填报
+      </a>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">三、手术信息</div>
+    <div class="card-sub">状态：{% if items_filled %}已填报 {{ items_count }} 条{% else %}未填报{% endif %}</div>
+    <div style="margin-top:10px; text-align:center;">
+      <a class="btn primary" href="{% if is_today %}{% url 'handover_fill_section_today' dept_code=dept_code section='items' %}{% else %}{% url 'handover_fill_section_by_date' dept_code=dept_code date=target_date section='items' %}{% endif %}">
+        进入手术信息填报
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}

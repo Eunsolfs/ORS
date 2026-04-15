@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}{{ department.name }} - ORS{% endblock %}
+{% block content %}
+<div class="topbar">
+  <div class="topbar-title">{{ department.name }}</div>
+  <div class="topbar-actions">
+    <form action="{% url 'logout' %}" method="post" style="display:inline;">
+      {% csrf_token %}
+      <button type="submit" class="btn ghost">退出</button>
+    </form>
+  </div>
+</div>
+
+<div class="container">
+  {% if role_in_department == "member" %}
+    <div class="card" style="margin-bottom:12px;">
+      <div class="card-title">今日交班填报（{{ today }}）</div>
+      {% if has_submitted_today %}
+        <div class="card-sub">你今日已填报 {{ my_items|length }} 条，下面可直接编辑/删除，也可继续新增。</div>
+        <div class="list" style="margin-top:10px;">
+          {% for item in my_items %}
+            <div class="card" style="padding:10px;">
+              <div class="card-title">{{ item.surgery_name|default:"（未填写手术名称）" }}</div>
+              <div class="card-sub">姓名：{{ item.patient_name|default:"-" }} | 年龄：{{ item.age|default:"-" }}</div>
+            </div>
+          {% endfor %}
+        </div>
+        <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
+          <a class="btn primary" href="{% url 'handover_fill_today' dept_code=dept_code %}">进入分项填报</a>
+          <a class="btn ghost" href="{% url 'handover_today' dept_code=dept_code %}">查看今日全部交班</a>
+        </div>
+      {% else %}
+        <div class="card-sub">你今天还没有填报，点击开始填报。</div>
+        <div style="margin-top:10px;">
+          <a class="btn primary" href="{% url 'handover_fill_today' dept_code=dept_code %}">开始填报</a>
+        </div>
+      {% endif %}
+    </div>
+  {% else %}
+    <div class="card" style="margin-bottom:12px;">
+      <div class="card-title">固定交班二维码</div>
+      <div class="card-sub">打印/贴墙/投屏即可（该科室永久不变）</div>
+      <div style="margin-top:10px;">
+        <img alt="交班二维码" style="width:180px;height:180px;border-radius:12px;border:1px solid var(--line);" src="{% url 'handover_today_qr' dept_code=dept_code %}" />
+      </div>
+    </div>
+  {% endif %}
+
+  <div class="grid">
+    <a class="card tappable" href="{% url 'handover_today' dept_code=dept_code %}">
+      <div class="card-title">今日交班</div>
+      <div class="card-sub">固定二维码入口（无需每天更换）</div>
+    </a>
+
+    <a class="card tappable" href="{% url 'course_list' dept_code=dept_code %}">
+      <div class="card-title">培训课程</div>
+      <div class="card-sub">扫码学习图文与视频</div>
+    </a>
+
+    {% if role_in_department != "member" %}
+      <a class="card tappable" href="/admin/">
+        <div class="card-title">系统管理</div>
+        <div class="card-sub">后台管理入口</div>
+      </a>
+
+      <a class="card tappable" href="{% url 'report_center' dept_code=dept_code %}">
+        <div class="card-title">报表统计中心</div>
+        <div class="card-sub">按时间段统计并导出 Excel</div>
+      </a>
+    {% endif %}
+
+  </div>
+
+</div>
+{% endblock %}
+

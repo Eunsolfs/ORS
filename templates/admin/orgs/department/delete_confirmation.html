@@ -1,0 +1,36 @@
+{% extends "admin/delete_confirmation.html" %}
+{% load i18n admin_urls %}
+
+{% block content %}
+  <style>
+    .ors-danger-box{border:1px solid var(--message-error-border-color);background:var(--message-error-bg);border-radius:8px;padding:12px;margin:12px 0;}
+    .ors-progress{display:none;margin-top:12px;}
+    .ors-progress progress{width:100%;}
+  </style>
+
+  <div class="ors-danger-box">
+    <strong>高风险操作：</strong>删除科室将<strong>一并删除</strong>该科室下的全部数据（课程、资源、交班、成员关系等），且不可恢复。
+  </div>
+
+  {{ block.super }}
+
+  <div class="ors-progress" id="ors-progress">
+    <div style="margin-bottom:6px;color:var(--body-quiet-color);">正在删除并清理关联数据，请勿关闭页面……</div>
+    <progress></progress>
+  </div>
+
+  <script>
+    (function () {
+      const form = document.querySelector('form[action][method="post"]');
+      const bar = document.getElementById('ors-progress');
+      if (!form || !bar) return;
+      form.addEventListener('submit', function () {
+        bar.style.display = 'block';
+        // 禁用所有按钮，避免重复提交
+        const btns = form.querySelectorAll('button, input[type="submit"]');
+        btns.forEach(b => { try { b.disabled = true; } catch(e) {} });
+      });
+    })();
+  </script>
+{% endblock %}
+

@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="zh-Hans">
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      @page { size: A4 landscape; margin: 10mm; }
+      body { font-family: "SimSun", "Songti SC", serif; font-size: 11px; color: #111; }
+      .title { text-align: center; font-size: 16px; font-weight: bold; margin-bottom: 6px; }
+      .meta { display: flex; justify-content: space-between; margin-bottom: 6px; }
+      table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+      th, td { border: 1px solid #333; padding: 4px; vertical-align: top; word-wrap: break-word; }
+      th { background: #f4f4f4; text-align: center; }
+      .small { font-size: 10px; }
+      .footer { margin-top: 8px; font-size: 11px; }
+      .checks { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; margin-top: 6px; }
+      .check { border: 1px solid #333; padding: 4px; }
+    </style>
+  </head>
+  <body>
+    <div class="title">手术室护理交班报告</div>
+    <div class="meta">
+      <div>科室：{{ department.name }}</div>
+      <div>日期：{{ session.handover_date }}</div>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th style="width: 7%;">科室</th>
+          <th style="width: 7%;">姓名</th>
+          <th style="width: 4%;">年龄</th>
+          <th style="width: 11%;">手术名称</th>
+          <th style="width: 12%;">特殊病情交接</th>
+          <th style="width: 8%;">输血前九项</th>
+          <th style="width: 7%;">压疮评估单</th>
+          <th style="width: 7%;">皮肤情况</th>
+          <th style="width: 7%;">术前访视</th>
+          <th style="width: 10%;">特殊器械准备</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in items %}
+        <tr>
+          <td>{{ item.department_text }}</td>
+          <td>{{ item.patient_name }}</td>
+          <td style="text-align:center;">{{ item.age }}</td>
+          <td>{{ item.surgery_name }}</td>
+          <td class="small">{{ item.special_handover|linebreaksbr }}</td>
+          <td class="small">{{ item.blood_transfusion_checks }}</td>
+          <td>{{ item.pressure_ulcer_assessment }}</td>
+          <td>{{ item.skin_condition }}</td>
+          <td>{{ item.preop_visit }}</td>
+          <td class="small">{{ item.special_instruments|linebreaksbr }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <div class="footer">
+      <div>择期：{{ session.elective_count|default_if_none:"" }} 台，急诊：{{ session.emergency_count|default_if_none:"" }} 台，抢救/特殊：{{ session.rescue_count|default_if_none:"" }} 台</div>
+      <div class="checks">
+        <div class="check">标本交接：{{ session.specimen_handover_status }} {{ session.specimen_handover_note }}</div>
+        <div class="check">层流运行：{{ session.laminar_flow_running_status }} {{ session.laminar_flow_running_note }}</div>
+        <div class="check">生物监测：{{ session.bio_monitoring_status }} {{ session.bio_monitoring_note }}</div>
+        <div class="check">急救车：{{ session.crash_cart_status }} {{ session.crash_cart_note }}</div>
+        <div class="check">消防安全：{{ session.fire_safety_status }} {{ session.fire_safety_note }}</div>
+        <div class="check">钥匙：{{ session.key_management_status }} {{ session.key_management_note }}</div>
+        <div class="check">合格证占位点：{{ session.certs_in_place_status }} {{ session.certs_in_place_note }}</div>
+        <div class="check" style="grid-column: span 5;">其它事件：{{ session.other_incidents }}</div>
+      </div>
+      <div style="margin-top:6px;color:#666;">生成时间：{{ generated_at }}</div>
+    </div>
+  </body>
+</html>
+

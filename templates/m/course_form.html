@@ -1,0 +1,283 @@
+{% extends "base.html" %}
+{% block title %}{% if mode == 'edit' %}编辑教程{% else %}新增教程{% endif %} - ORS{% endblock %}
+{% block content %}
+<div class="topbar">
+  <div class="topbar-title">{% if mode == 'edit' %}编辑教程{% else %}新增教程{% endif %}</div>
+  <div class="topbar-actions">
+    <a class="btn ghost" href="{% url 'media_library_page' dept_code=dept_code %}" target="_blank">图片管理库</a>
+    <a class="btn ghost" href="{% url 'course_manage_list' dept_code=dept_code %}">返回</a>
+  </div>
+</div>
+
+<div class="container">
+  <div id="uploadProgressBox" class="card upload-progress-box" style="display:none;margin-bottom:12px;">
+    <div class="card-title">图片上传中</div>
+    <div class="progress-track"><div id="uploadProgressBar" class="progress-bar"></div></div>
+    <div id="uploadProgressText" class="card-sub">0%</div>
+  </div>
+
+  <form method="post" class="card form">
+    {% csrf_token %}
+    <div class="editor-header">
+      <div class="editor-title">
+        <div class="label">标题</div>
+        {{ form.title }}
+      </div>
+      <div class="editor-status">
+        <div class="label">状态</div>
+        {{ form.status }}
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="label">教程内容（可视化编辑，支持图文视频混排）</label>
+      {{ form.content_html }}
+      <div class="muted" style="margin-top:6px;">
+        支持拖拽图片/粘贴图片自动上传并插入。若编辑器加载失败，仍可直接编辑 HTML。
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:12px;">
+      <div class="card-title">一键插入视频（推荐）</div>
+      <div class="card-sub">粘贴 B 站分享链接或 BV 号，点击插入即可自动生成 iframe。</div>
+      <div class="grid2" style="margin-top:10px;">
+        <div class="field">
+          <label class="label">视频链接 / BV 号</label>
+          <input id="videoInput" class="input" placeholder="例如：https://www.bilibili.com/video/BVxxxx 或 BVxxxx" />
+        </div>
+        <div class="field" style="display:flex;align-items:flex-end;gap:8px;">
+          <button id="btnInsertVideo" type="button" class="btn primary">插入到正文</button>
+          <button id="btnPreviewVideo" type="button" class="btn">预览</button>
+        </div>
+      </div>
+      <div id="videoPreview" class="ratio" style="display:none;margin-top:10px;"></div>
+    </div>
+
+    <button class="btn primary" type="submit">保存</button>
+  </form>
+
+  <div class="card" style="margin-top:12px;">
+    <div class="card-title">图片管理库（快速插入）</div>
+    <div class="card-sub">点击“插入到正文”即可在光标处插入图片</div>
+    <div id="editorMediaList" class="media-grid" style="margin-top:10px;"></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/tinymce@7/tinymce.min.js" referrerpolicy="origin"></script>
+<script src="https://cdn.jsdelivr.net/npm/tinymce-i18n@26.4.6/langs7/zh_CN.js"></script>
+<script>
+  (function () {
+    if (!window.tinymce) return;
+    const uploadUrl = "{% url 'course_upload_image' dept_code=dept_code %}";
+    const mediaApiUrl = "{% url 'media_assets_api' dept_code=dept_code %}";
+    const mediaDeleteBase = "{% url 'media_asset_delete' dept_code=dept_code asset_id=0 %}".replace('/0/delete/', '/__ID__/delete/');
+    const progressBox = document.getElementById('uploadProgressBox');
+    const progressBar = document.getElementById('uploadProgressBar');
+    const progressText = document.getElementById('uploadProgressText');
+    const editorMediaList = document.getElementById('editorMediaList');
+    let editorRef = null;
+
+    function getCookie(name) {
+      const cookieValue = document.cookie
+        .split('; ')
+        .find(row => row.startsWith(name + '='));
+      return cookieValue ? decodeURIComponent(cookieValue.split('=')[1]) : '';
+    }
+
+    function showProgress(percent) {
+      progressBox.style.display = 'block';
+      progressBar.style.width = percent + '%';
+      progressText.textContent = percent + '%';
+    }
+
+    function hideProgressLater() {
+      setTimeout(() => { progressBox.style.display = 'none'; }, 500);
+    }
+
+    function insertImage(url) {
+      if (!editorRef) return;
+      editorRef.insertContent(`<p><img src="${url}" alt="" /></p>`);
+      editorRef.save();
+    }
+
+    function renderMediaList(assets) {
+      editorMediaList.innerHTML = (assets || []).map(a => `
+        <div class="media-card" data-id="${a.id}">
+          <img src="${a.file_url}" alt="${a.file_name}" />
+          <div class="media-meta">
+            <div class="media-name">${a.file_name}</div>
+            <div class="muted">${a.created_at}</div>
+            <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;">
+              <button type="button" class="btn small js-insert" data-url="${a.file_url}">插入到正文</button>
+              <button type="button" class="btn small js-copy" data-url="${a.file_url}">复制链接</button>
+              <button type="button" class="btn small js-delete" data-id="${a.id}">删除</button>
+            </div>
+          </div>
+        </div>
+      `).join('');
+
+      editorMediaList.querySelectorAll('.js-insert').forEach(btn => {
+        btn.onclick = () => insertImage(btn.dataset.url || '');
+      });
+      editorMediaList.querySelectorAll('.js-copy').forEach(btn => {
+        btn.onclick = async () => {
+          const url = btn.dataset.url || '';
+          await navigator.clipboard.writeText(url);
+          btn.textContent = '已复制';
+          setTimeout(() => btn.textContent = '复制链接', 1200);
+        };
+      });
+      editorMediaList.querySelectorAll('.js-delete').forEach(btn => {
+        btn.onclick = async () => {
+          if (!confirm('确认删除该图片记录？')) return;
+          const id = btn.dataset.id;
+          const res = await fetch(mediaDeleteBase.replace('__ID__', id), {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'X-CSRFToken': getCookie('csrftoken') }
+          });
+          if (res.ok) {
+            loadMediaAssets();
+            return;
+          }
+          const data = await res.json().catch(() => ({}));
+          if (res.status === 409 && data.error === 'asset_in_use') {
+            const list = (data.courses || []).map(x => `- ${x}`).join('\n');
+            alert((data.message || '该图片正在被引用，无法删除。') + (list ? `\n\n引用教程：\n${list}` : ''));
+          } else {
+            alert('删除失败，请稍后重试');
+          }
+        };
+      });
+    }
+
+    function loadMediaAssets() {
+      fetch(mediaApiUrl, { credentials: 'same-origin' })
+        .then(res => res.ok ? res.json() : Promise.reject())
+        .then(data => renderMediaList(data.assets || []))
+        .catch(() => {});
+    }
+
+    tinymce.init({
+      selector: '#id_content_html_editor',
+      menubar: 'file edit view insert format table tools',
+      branding: false,
+      height: 560,
+      language: 'zh_CN',
+      language_url: 'https://cdn.jsdelivr.net/npm/tinymce-i18n@7/langs/zh_CN.js',
+      skin: 'oxide',
+      content_css: 'default',
+      // 允许编辑器内实时显示第三方 iframe（例如 B 站）
+      sandbox_iframes: false,
+      media_live_embeds: true,
+      plugins: [
+        'advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'preview',
+        'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
+        'insertdatetime', 'media', 'table', 'wordcount', 'codesample'
+      ],
+      toolbar: 'undo redo | styles blocks fontsize | bold italic underline forecolor backcolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | link image media table codesample | removeformat | code fullscreen preview',
+      content_style: 'body { font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Arial, sans-serif; font-size: 15px; line-height: 1.7; } img { max-width: 100%; height: auto; } iframe { max-width: 100%; }',
+      convert_urls: false,
+      relative_urls: false,
+      remove_script_host: false,
+      automatic_uploads: true,
+      paste_data_images: true,
+      images_file_types: 'jpg,jpeg,png,gif,webp',
+      images_upload_handler: (blobInfo, progress) => new Promise((resolve, reject) => {
+        const formData = new FormData();
+        formData.append('file', blobInfo.blob(), blobInfo.filename());
+
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', uploadUrl, true);
+        xhr.withCredentials = true;
+        xhr.setRequestHeader('X-CSRFToken', getCookie('csrftoken'));
+
+        xhr.upload.onprogress = function (e) {
+          if (!e.lengthComputable) return;
+          const p = Math.round((e.loaded / e.total) * 100);
+          progress(p);
+          showProgress(p);
+        };
+
+        xhr.onload = function () {
+          if (xhr.status < 200 || xhr.status >= 300) {
+            reject('上传失败: ' + xhr.status);
+            showProgress(0);
+            hideProgressLater();
+            return;
+          }
+          try {
+            const data = JSON.parse(xhr.responseText || '{}');
+            if (!data.location) throw new Error('返回缺少 location');
+            resolve(data.location);
+            showProgress(100);
+            hideProgressLater();
+            loadMediaAssets();
+          } catch (err) {
+            reject('解析上传响应失败');
+            showProgress(0);
+            hideProgressLater();
+          }
+        };
+
+        xhr.onerror = function () {
+          reject('上传网络异常');
+          showProgress(0);
+          hideProgressLater();
+        };
+
+        xhr.send(formData);
+      }),
+      extended_valid_elements: 'iframe[src|frameborder|style|scrolling|class|width|height|name|align|allowfullscreen|allow|referrerpolicy]',
+      valid_children: '+body[style]',
+      setup: function (editor) {
+        editorRef = editor;
+        editor.on('change input undo redo', function () {
+          editor.save();
+        });
+      }
+    });
+    loadMediaAssets();
+
+    // 视频一键插入：Bilibili 链接 / BV
+    const videoInput = document.getElementById('videoInput');
+    const btnInsertVideo = document.getElementById('btnInsertVideo');
+    const btnPreviewVideo = document.getElementById('btnPreviewVideo');
+    const videoPreview = document.getElementById('videoPreview');
+
+    function parseBv(val) {
+      const s = (val || '').trim();
+      if (!s) return null;
+      const m1 = s.match(/(BV[0-9A-Za-z]{10})/);
+      if (m1) return m1[1];
+      return null;
+    }
+    function buildBiliIframe(bv) {
+      // b站官方 iframe player
+      const src = `https://player.bilibili.com/player.html?bvid=${encodeURIComponent(bv)}&page=1&high_quality=1&danmaku=0`;
+      return `<p><iframe src="${src}" style="width:100%;height:420px;border:0;border-radius:12px;" scrolling="no" frameborder="0" allowfullscreen="true"></iframe></p>`;
+    }
+    function showVideoPreview(html) {
+      if (!videoPreview) return;
+      videoPreview.style.display = 'block';
+      videoPreview.innerHTML = html;
+    }
+
+    btnPreviewVideo?.addEventListener('click', () => {
+      const bv = parseBv(videoInput?.value);
+      if (!bv) { alert('未识别到 BV 号'); return; }
+      showVideoPreview(buildBiliIframe(bv));
+    });
+
+    btnInsertVideo?.addEventListener('click', () => {
+      const bv = parseBv(videoInput?.value);
+      if (!bv) { alert('未识别到 BV 号'); return; }
+      if (!editorRef) return;
+      editorRef.insertContent(`<p></p>${buildBiliIframe(bv)}<p></p>`);
+      editorRef.save();
+      showVideoPreview(buildBiliIframe(bv));
+    });
+  })();
+</script>
+{% endblock %}
+

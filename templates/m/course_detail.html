@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}{{ course.title }} - ORS{% endblock %}
+{% block content %}
+<div class="topbar">
+  <div class="topbar-title">{{ course.title }}</div>
+  <div class="topbar-actions">
+    <a class="btn ghost" href="{% url 'course_list' dept_code=dept_code %}">返回</a>
+  </div>
+</div>
+
+<div class="container">
+  <div class="card" style="margin-bottom:12px;">
+    <div class="card-title">课程二维码</div>
+    <div class="card-sub">线下贴码，扫码直达本课程</div>
+    <div style="margin-top:10px;">
+      <img alt="课程二维码" style="width:180px;height:180px;border-radius:12px;border:1px solid var(--line);" src="{% url 'course_qr' dept_code=dept_code course_id=course.id %}" />
+    </div>
+  </div>
+
+  {% if course.video_embed_html %}
+    <div class="card">
+      <div class="ratio">
+        {{ course.video_embed_html|safe }}
+      </div>
+    </div>
+  {% elif course.video_url %}
+    <div class="card">
+      <div class="muted">视频链接：</div>
+      <div class="mono">{{ course.video_url }}</div>
+    </div>
+  {% endif %}
+
+  <div class="card prose">
+    {{ course.content_html|safe }}
+  </div>
+</div>
+{% endblock %}
+

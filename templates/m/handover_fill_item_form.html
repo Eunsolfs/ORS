@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}{% if item %}编辑{% else %}新增{% endif %}手术条目 {{ target_date }} - ORS{% endblock %}
+{% block content %}
+<div class="topbar">
+  <div class="topbar-title">{% if item %}编辑{% else %}新增{% endif %}手术条目</div>
+  <div class="topbar-actions">
+    <a class="btn ghost" href="{% if is_today %}{% url 'handover_fill_section_today' dept_code=dept_code section='items' %}{% else %}{% url 'handover_fill_section_by_date' dept_code=dept_code date=target_date section='items' %}{% endif %}">返回列表</a>
+    <button class="btn primary" form="itemForm" type="submit">保存</button>
+  </div>
+</div>
+
+<div class="container">
+  <form id="itemForm" method="post" class="card form">
+    {% csrf_token %}
+    {% if form.non_field_errors %}
+      <div class="alert">{{ form.non_field_errors }}</div>
+    {% endif %}
+
+    <div class="grid2">
+      <div class="field">
+        <label class="label">科室</label>
+        {{ form.department_text }}
+      </div>
+      <div class="field">
+        <label class="label">姓名</label>
+        {{ form.patient_name }}
+      </div>
+      <div class="field">
+        <label class="label">年龄</label>
+        {{ form.age }}
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="label">手术名称</label>
+      {{ form.surgery_name }}
+    </div>
+
+    <div class="field">
+      <label class="label">特殊病情交接</label>
+      {{ form.special_handover }}
+    </div>
+
+    <div class="field tri">
+      <div class="tri-label">输血前9项</div>
+      <div class="tri-radio">{{ form.blood_transfusion_checks }}</div>
+    </div>
+    <div class="field tri">
+      <div class="tri-label">压疮评估单</div>
+      <div class="tri-radio">{{ form.pressure_ulcer_assessment }}</div>
+    </div>
+    <div class="field tri">
+      <div class="tri-label">皮肤情况</div>
+      <div class="tri-radio">{{ form.skin_condition }}</div>
+    </div>
+    <div class="field tri">
+      <div class="tri-label">术前访视</div>
+      <div class="tri-radio">{{ form.preop_visit }}</div>
+    </div>
+
+    <div class="field">
+      <label class="label">特殊器械准备</label>
+      {{ form.special_instruments }}
+    </div>
+  </form>
+</div>
+
+<style>
+  .tri{display:grid;grid-template-columns: 92px 1fr;gap:8px;align-items:start;}
+  .tri-label{font-weight:600;color:var(--text);padding-top:6px;}
+  .tri-radio label{margin-right:12px;display:inline-flex;align-items:center;gap:6px;}
+  @media (max-width: 520px){
+    .tri{grid-template-columns: 1fr;}
+  }
+</style>
+{% endblock %}

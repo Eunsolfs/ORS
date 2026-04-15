@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}删除教程 - ORS{% endblock %}
+{% block content %}
+<div class="topbar">
+  <div class="topbar-title">删除教程</div>
+  <div class="topbar-actions">
+    <a class="btn ghost" href="{% url 'course_manage_list' dept_code=dept_code %}">返回</a>
+  </div>
+</div>
+
+<div class="container">
+  <form method="post" class="card form">
+    {% csrf_token %}
+    <div class="card-title">确认删除「{{ course.title }}」？</div>
+    <div class="card-sub">删除后不可恢复。</div>
+    <div style="margin-top:12px;">
+      <button type="submit" class="btn primary">确认删除</button>
+    </div>
+  </form>
+</div>
+{% endblock %}
+

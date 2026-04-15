@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}报表统计中心 - ORS{% endblock %}
+{% block content %}
+<div class="topbar">
+  <div class="topbar-title">报表统计中心（{{ department.name }}）</div>
+  <div class="topbar-actions">
+    <a class="btn ghost" href="{% url 'm_home' dept_code=dept_code %}">返回</a>
+  </div>
+</div>
+
+<div class="container">
+  <form class="card" method="get" style="margin-bottom:12px;">
+    <div class="grid2">
+      <div class="field">
+        <label class="label">开始日期</label>
+        <input class="input" type="date" name="start_date" value="{{ start_date|date:'Y-m-d' }}" />
+      </div>
+      <div class="field">
+        <label class="label">结束日期</label>
+        <input class="input" type="date" name="end_date" value="{{ end_date|date:'Y-m-d' }}" />
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <button class="btn primary" type="submit">统计</button>
+      <a class="btn ghost" href="{% url 'export_handover_range_excel' dept_code=dept_code %}?start_date={{ start_date|date:'Y-m-d' }}&end_date={{ end_date|date:'Y-m-d' }}">导出时间段 Excel</a>
+      <a class="btn ghost" href="{% url 'export_handover_range_pdf' dept_code=dept_code %}?start_date={{ start_date|date:'Y-m-d' }}&end_date={{ end_date|date:'Y-m-d' }}">导出时间段 PDF</a>
+    </div>
+  </form>
+
+  <div class="grid">
+    <div class="card"><div class="card-title">交班天数</div><div class="h1">{{ total_sessions }}</div></div>
+    <div class="card"><div class="card-title">手术条目总数</div><div class="h1">{{ total_items }}</div></div>
+  </div>
+
+  <div class="card" style="margin-top:12px;">
+    <div class="card-title">每日手术数量趋势</div>
+    <div id="trend" style="height:320px;"></div>
+  </div>
+
+  <div class="card" style="margin-top:12px;">
+    <div class="card-title">手术名称 TOP</div>
+    <div id="topSurgery" style="height:320px;"></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+<script>
+  (function(){
+    if (!window.echarts) return;
+    const trendEl = document.getElementById('trend');
+    const topEl = document.getElementById('topSurgery');
+    const labels = {{ date_labels_json|safe }};
+    const counts = {{ date_counts_json|safe }};
+    const topDataRaw = {{ top_surgeries_json|safe }};
+    const topNames = topDataRaw.map(x => x.name);
+    const topVals = topDataRaw.map(x => x.value);
+
+    const trend = echarts.init(trendEl);
+    trend.setOption({
+      backgroundColor: 'transparent',
+      tooltip: { trigger: 'axis' },
+      xAxis: { type: 'category', data: labels, axisLabel: { color: '#9fb3d6' } },
+      yAxis: { type: 'value', minInterval: 1, axisLabel: { color: '#9fb3d6' } },
+      series: [{ type: 'line', data: counts, smooth: true, areaStyle: {} }]
+    });
+
+    const bar = echarts.init(topEl);
+    bar.setOption({
+      backgroundColor: 'transparent',
+      tooltip: { trigger: 'axis' },
+      xAxis: { type: 'value', minInterval: 1, axisLabel: { color: '#9fb3d6' } },
+      yAxis: { type: 'category', data: topNames, axisLabel: { color: '#9fb3d6' } },
+      series: [{ type: 'bar', data: topVals }]
+    });
+
+    window.addEventListener('resize', function(){
+      trend.resize(); bar.resize();
+    });
+  })();
+</script>
+{% endblock %}
+

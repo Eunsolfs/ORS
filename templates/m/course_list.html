@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}培训课程 - ORS{% endblock %}
+{% block content %}
+<div class="topbar">
+  <div class="topbar-title">培训课程</div>
+  <div class="topbar-actions">
+    {% if can_manage_courses %}
+      <a class="btn ghost" href="{% url 'course_manage_list' dept_code=dept_code %}">管理教程</a>
+    {% endif %}
+    <a class="btn ghost" href="{% url 'm_home' dept_code=dept_code %}">返回</a>
+  </div>
+</div>
+
+<div class="container">
+  {% if courses|length == 0 %}
+    <div class="card">
+      <div class="card-title">暂无课程</div>
+      <div class="card-sub">管理员可在后台创建课程并生成二维码。</div>
+    </div>
+  {% endif %}
+
+  <div class="list">
+    {% for c in courses %}
+      <a class="card tappable" href="{% url 'course_detail' dept_code=dept_code course_id=c.id %}">
+        <div class="card-title">{{ c.title }}</div>
+        <div class="card-sub">点击进入学习</div>
+      </a>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}
+

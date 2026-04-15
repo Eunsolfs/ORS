@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}检查项填报 {{ target_date }} - ORS{% endblock %}
+{% block content %}
+<div class="topbar">
+  <div class="topbar-title">二、检查项</div>
+  <div class="topbar-actions">
+    <a class="btn ghost" href="{% if is_today %}{% url 'handover_fill_today' dept_code=dept_code %}{% else %}{% url 'handover_fill_by_date' dept_code=dept_code date=target_date %}{% endif %}">返回分项页</a>
+    <button class="btn primary" form="checksForm" type="submit">保存</button>
+  </div>
+</div>
+
+<div class="container">
+  <form id="checksForm" method="post" class="card form">
+    {% csrf_token %}
+    <div class="field tri">
+      <div class="tri-label">标本交接</div>
+      <div class="tri-radio">{{ form.specimen_handover_status }}</div>
+      <div class="tri-note">{{ form.specimen_handover_note }}</div>
+    </div>
+    <div class="field tri">
+      <div class="tri-label">层流运行</div>
+      <div class="tri-radio">{{ form.laminar_flow_running_status }}</div>
+      <div class="tri-note">{{ form.laminar_flow_running_note }}</div>
+    </div>
+    <div class="field tri">
+      <div class="tri-label">生物监测</div>
+      <div class="tri-radio">{{ form.bio_monitoring_status }}</div>
+      <div class="tri-note">{{ form.bio_monitoring_note }}</div>
+    </div>
+    <div class="field tri">
+      <div class="tri-label">急救车</div>
+      <div class="tri-radio">{{ form.crash_cart_status }}</div>
+      <div class="tri-note">{{ form.crash_cart_note }}</div>
+    </div>
+    <div class="field tri">
+      <div class="tri-label">消防安全</div>
+      <div class="tri-radio">{{ form.fire_safety_status }}</div>
+      <div class="tri-note">{{ form.fire_safety_note }}</div>
+    </div>
+    <div class="field tri">
+      <div class="tri-label">钥匙管理</div>
+      <div class="tri-radio">{{ form.key_management_status }}</div>
+      <div class="tri-note">{{ form.key_management_note }}</div>
+    </div>
+    <div class="field tri">
+      <div class="tri-label">其它合格证收纳</div>
+      <div class="tri-radio">{{ form.certs_in_place_status }}</div>
+      <div class="tri-note">{{ form.certs_in_place_note }}</div>
+    </div>
+    <div class="field">
+      <label class="label">其它事件</label>
+      {{ form.other_incidents }}
+    </div>
+  </form>
+</div>
+
+<style>
+  .tri{display:grid;grid-template-columns: 92px 1fr;gap:8px;align-items:start;}
+  .tri-label{font-weight:600;color:var(--text);padding-top:6px;}
+  .tri-radio label{margin-right:12px;display:inline-flex;align-items:center;gap:6px;}
+  .tri-note{grid-column: 2 / 3;}
+  .tri-note.hidden{display:none;}
+  .tri-note input{width:100%;}
+  @media (max-width: 520px){
+    .tri{grid-template-columns: 1fr;}
+    .tri-note{grid-column:auto;}
+  }
+</style>
+
+<script>
+  (function(){
+    function bindTriOtherToggle(scope){
+      scope.querySelectorAll('.field.tri').forEach(triField => {
+        const noteWrap = triField.querySelector('.tri-note');
+        const radios = triField.querySelectorAll('.tri-radio input[type="radio"]');
+        if (!noteWrap || !radios.length) return;
+        const refresh = () => {
+          const checked = triField.querySelector('.tri-radio input[type="radio"]:checked');
+          noteWrap.classList.toggle('hidden', !(checked && checked.value === 'other'));
+        };
+        radios.forEach(r => r.addEventListener('change', refresh));
+        refresh();
+      });
+    }
+    bindTriOtherToggle(document);
+  })();
+</script>
+{% endblock %}

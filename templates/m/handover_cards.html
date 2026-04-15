@@ -1,0 +1,245 @@
+{% extends "base.html" %}
+{% block title %}交班 {{ session.handover_date }} - ORS{% endblock %}
+{% block content %}
+<style>
+  .handover-card-enhanced{
+    display:none;
+    border:1px solid #cfe0f7;
+    border-radius:16px;
+    background:linear-gradient(180deg,#ffffff 0%,#f9fcff 100%);
+    box-shadow:0 10px 24px rgba(30,42,67,.08);
+    padding:14px;
+    color:#1f2f46;
+  }
+  .handover-card-enhanced .handover-head{
+    padding-bottom:10px;
+    margin-bottom:10px;
+    border-bottom:1px dashed #d9e5f6;
+  }
+  .handover-meta{
+    margin-top:8px;
+    display:flex;
+    flex-wrap:nowrap;
+    gap:6px;
+    padding:6px 6px;
+    background:#f4f8ff;
+    border:1px solid #dbe6f5;
+    border-radius:12px;
+  }
+  .handover-meta-item{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    flex:1 1 0;
+    justify-content:center;
+    padding:4px 6px;
+    border-radius:10px;
+    background:rgba(255,255,255,.75);
+    white-space:nowrap;
+    min-width:0;
+  }
+  .handover-meta-item .k{
+    min-width:auto;
+    margin:0;
+    font-size:13px;
+    color:#5f718f;
+  }
+  .handover-meta-item .v{
+    display:inline;
+    font-size:15px;
+    font-weight:700;
+    color:#1e2a43;
+    min-width:0;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .detail-row{
+    display:grid;
+    grid-template-columns:110px 1fr;
+    align-items:start;
+    gap:12px;
+    padding:11px 0;
+    border-bottom:1px dashed #d9e5f6;
+  }
+  .detail-row:last-of-type{
+    border-bottom:none;
+    padding-bottom:0;
+  }
+  .detail-key{
+    color:#5f718f;
+    font-size:13px;
+    line-height:1.5;
+  }
+  .detail-value{
+    flex:1;
+    text-align:left;
+    font-size:15px;
+    font-weight:600;
+    line-height:1.5;
+    color:#f1730c;
+    word-break:break-word;
+  }
+  .detail-value.compact{
+    display:grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap:6px 10px;
+  }
+  .detail-value.compact .pair{
+    flex:1 1 calc(50% - 10px);
+    min-width:180px;
+    white-space:normal;
+    color:#2f405f;
+    font-size:15px;
+    font-weight:500;
+  }
+  @media (max-width:640px){
+    .handover-meta-item{
+      flex:1 1 0;
+      justify-content:center;
+      padding:4px;
+    }
+    .detail-row{
+      grid-template-columns:1fr;
+      gap:6px;
+    }
+    .detail-key{
+      min-width:auto;
+    }
+    .detail-value{
+      width:100%;
+      text-align:left;
+    }
+    .detail-value.compact{
+      justify-content:flex-start;
+    }
+    .detail-value.compact .pair{
+      flex:1 1 100%;
+      min-width:0;
+    }
+  }
+</style>
+<div class="topbar">
+  <div class="topbar-title">交班 {{ session.handover_date }}</div>
+  <div class="topbar-actions">
+    <a class="btn ghost" href="{% url 'm_home' dept_code=dept_code %}">返回</a>
+    <a class="btn primary" href="{% if is_today %}{% url 'handover_fill_today' dept_code=dept_code %}{% else %}{% url 'handover_fill_by_date' dept_code=dept_code date=session.handover_date %}{% endif %}">进入分项填报</a>
+    {% if can_manage_all %}
+      <a class="btn ghost" href="{% url 'export_handover_excel' dept_code=dept_code date=session.handover_date %}">导出Excel</a>
+      <a class="btn ghost" href="{% url 'export_handover_pdf' dept_code=dept_code date=session.handover_date %}">导出PDF</a>
+    {% endif %}
+  </div>
+</div>
+
+<div class="container">
+  <div class="card" style="margin-bottom:12px;">
+    <div class="card-title">总览</div>
+    <div class="kv compact" style="margin-top:8px; display:grid; grid-template-columns: repeat(2, 1fr); gap:8px;">
+      <div><span class="k">择期</span><span class="v">{{ session.elective_count|default:"-" }}</span></div>
+      <div><span class="k">急诊</span><span class="v">{{ session.emergency_count|default:"-" }}</span></div>
+      <div><span class="k">抢救</span><span class="v">{{ session.rescue_count|default:"-" }}</span></div>
+      <div><span class="k">备注</span><span class="v">{{ session.notes|default:"-"|linebreaksbr }}</span></div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:12px;">
+    <div class="card-title">检查项</div>
+    <div class="kv compact" style="margin-top:8px; display:grid; grid-template-columns: repeat(2, 1fr); gap:8px;">
+      <div><span class="k">标本交接</span><span class="v">{{ session.specimen_handover_status|default_if_none:"" }} {{ session.specimen_handover_note|default:"" }}</span></div>
+      <div><span class="k">层流运行</span><span class="v">{{ session.laminar_flow_running_status|default_if_none:"" }} {{ session.laminar_flow_running_note|default:"" }}</span></div>
+      <div><span class="k">生物监测</span><span class="v">{{ session.bio_monitoring_status|default_if_none:"" }} {{ session.bio_monitoring_note|default:"" }}</span></div>
+      <div><span class="k">急救车</span><span class="v">{{ session.crash_cart_status|default_if_none:"" }} {{ session.crash_cart_note|default:"" }}</span></div>
+      <div><span class="k">消防安全</span><span class="v">{{ session.fire_safety_status|default_if_none:"" }} {{ session.fire_safety_note|default:"" }}</span></div>
+      <div><span class="k">钥匙管理</span><span class="v">{{ session.key_management_status|default_if_none:"" }} {{ session.key_management_note|default:"" }}</span></div>
+      <div><span class="k">其它合格证收纳</span><span class="v">{{ session.certs_in_place_status|default_if_none:"" }} {{ session.certs_in_place_note|default:"" }}</span></div>
+      <div><span class="k">其它事件</span><span class="v">{{ session.other_incidents|default:"-"|linebreaksbr }}</span></div>
+    </div>
+  </div>
+
+  {% if items|length == 0 %}
+    <div class="card">
+      <div class="card-title">今日暂无手术条目</div>
+      <div class="card-sub">点击右上角“进入分项填报”开始填报。</div>
+    </div>
+  {% endif %}
+
+  <div id="cards" class="cards">
+    {% for item in items %}
+      <div class="handover-card handover-card-enhanced" data-index="{{ forloop.counter0 }}">
+        <div class="handover-meta">
+          <div class="handover-meta-item"><span class="k">科室</span><span class="v">{{ item.department_text|default:"-" }}</span></div>
+          <div class="handover-meta-item"><span class="k">姓名</span><span class="v">{{ item.patient_name|default:"-" }}</span></div>
+          <div class="handover-meta-item"><span class="k">年龄</span><span class="v">{{ item.age|default:"-" }}</span></div>
+        </div>
+        <div class="section" style="margin-top:10px;">
+          <div class="detail-row">
+            <div class="card-title">手术名称</div>
+            <div class="detail-value"><span class="badge">#{{ forloop.counter }}</span> {{ item.surgery_name|default:"（未填写手术名称）" }}</div>
+          </div>
+          <div class="detail-row">
+            <div class="card-title">评估/访视</div>
+            <div class="detail-value compact">
+              <span class="pair">输血前9项：{{ item.blood_transfusion_checks|default:"-" }}</span>
+              <span class="pair">压疮评估单：{{ item.pressure_ulcer_assessment|default:"-" }}</span>
+              <span class="pair">皮肤情况：{{ item.skin_condition|default:"-" }}</span>
+              <span class="pair">术前访视：{{ item.preop_visit|default:"-" }}</span>
+            </div>
+          </div>
+          <div class="detail-row">
+            <div class="card-title">特殊器械准备</div>
+            <div class="detail-value">{{ item.special_instruments|default:"-"|linebreaksbr }}</div>
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+
+  {% if items|length > 0 %}
+  <div class="pager">
+    <button class="btn" id="prevBtn" type="button">上一张</button>
+    <div class="pager-mid"><span id="pos">1</span> / {{ items|length }}</div>
+    <button class="btn" id="nextBtn" type="button">下一张</button>
+  </div>
+  {% endif %}
+</div>
+
+<script>
+  (function(){
+    const cards = Array.from(document.querySelectorAll('.handover-card'));
+    if (!cards.length) return;
+
+    let idx = 0;
+    const posEl = document.getElementById('pos');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+
+    function show(i){
+      idx = Math.max(0, Math.min(cards.length - 1, i));
+      cards.forEach((c, j) => c.style.display = (j === idx ? 'block' : 'none'));
+      if (posEl) posEl.textContent = String(idx + 1);
+      if (prevBtn) prevBtn.disabled = idx === 0;
+      if (nextBtn) nextBtn.disabled = idx === cards.length - 1;
+    }
+
+    function next(){ show(idx + 1); }
+    function prev(){ show(idx - 1); }
+
+    if (prevBtn) prevBtn.addEventListener('click', prev);
+    if (nextBtn) nextBtn.addEventListener('click', next);
+
+    // Swipe
+    let startX = null;
+    document.addEventListener('touchstart', (e) => { startX = e.touches[0].clientX; }, {passive:true});
+    document.addEventListener('touchend', (e) => {
+      if (startX === null) return;
+      const endX = e.changedTouches[0].clientX;
+      const dx = endX - startX;
+      startX = null;
+      if (Math.abs(dx) < 40) return;
+      if (dx < 0) next(); else prev();
+    }, {passive:true});
+
+    show(0);
+  })();
+</script>
+{% endblock %}
+

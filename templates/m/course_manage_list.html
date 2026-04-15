@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}课程管理 - ORS{% endblock %}
+{% block content %}
+<div class="topbar">
+  <div class="topbar-title">课程管理（{{ department.name }}）</div>
+  <div class="topbar-actions">
+    <a class="btn ghost" href="{% url 'course_list' dept_code=dept_code %}">返回课程</a>
+    <a class="btn ghost" href="{% url 'media_library_page' dept_code=dept_code %}">图片管理库</a>
+    <a class="btn primary" href="{% url 'course_create' dept_code=dept_code %}">新增教程</a>
+  </div>
+</div>
+
+<div class="container">
+  {% if courses|length == 0 %}
+    <div class="card">
+      <div class="card-title">还没有教程</div>
+      <div class="card-sub">点击右上角“新增教程”开始创建。</div>
+    </div>
+  {% endif %}
+
+  <div class="list">
+    {% for c in courses %}
+      <div class="card">
+        <div class="card-title">{{ c.title }}</div>
+        <div class="card-sub">状态：{{ c.status }} | 更新时间：{{ c.updated_at }}</div>
+        <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
+          <a class="btn ghost small" href="{% url 'course_detail' dept_code=dept_code course_id=c.id %}">预览</a>
+          <a class="btn ghost small" href="{% url 'course_edit' dept_code=dept_code course_id=c.id %}">编辑</a>
+          <a class="btn ghost small" href="{% url 'course_delete' dept_code=dept_code course_id=c.id %}">删除</a>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}
+

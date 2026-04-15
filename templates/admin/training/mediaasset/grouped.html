@@ -1,0 +1,76 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block content %}
+  <style>
+    .ors-group-header{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:12px 0;}
+    .ors-count{color:var(--body-quiet-color);font-size:12px;}
+    .ors-asset{display:flex;gap:12px;align-items:center;padding:8px 0;border-bottom:1px solid var(--hairline-color);}
+    .ors-thumb{width:64px;height:64px;border-radius:6px;background:#1111;display:flex;align-items:center;justify-content:center;overflow:hidden;flex:0 0 auto;}
+    .ors-thumb img{width:100%;height:100%;object-fit:cover;display:block;}
+    .ors-meta{min-width:0;flex:1 1 auto;}
+    .ors-name{font-weight:600;word-break:break-all;}
+    .ors-sub{color:var(--body-quiet-color);font-size:12px;margin-top:2px;word-break:break-all;}
+    .ors-actions{display:flex;gap:8px;align-items:center;flex:0 0 auto;}
+    details{background:var(--darkened-bg);border:1px solid var(--hairline-color);border-radius:8px;padding:8px 12px;margin:10px 0;}
+    summary{cursor:pointer;font-weight:700;}
+    .ors-tools{margin:8px 0 0;display:flex;gap:10px;flex-wrap:wrap;}
+  </style>
+
+  <div class="ors-group-header">
+    <h1 style="margin:0;">{{ title }}</h1>
+    <div class="ors-count">总数：{{ total }}</div>
+  </div>
+
+  <div class="ors-tools">
+    <a class="button" href="{% url 'admin:training_mediaasset_changelist' %}">返回默认列表</a>
+  </div>
+
+  {% for dept, items in by_dept.items %}
+    <details {% if forloop.first %}open{% endif %}>
+      <summary>{{ dept.name }}（{{ items|length }}）</summary>
+      <div>
+        {% for a in items %}
+          <div class="ors-asset">
+            <div class="ors-thumb">
+              {% with url=a.file_url|default_if_none:"" %}
+                {% if url|lower|slice:"-4:" == ".png" or url|lower|slice:"-4:" == ".jpg" or url|lower|slice:"-5:" == ".jpeg" or url|lower|slice:"-4:" == ".gif" or url|lower|slice:"-5:" == ".webp" %}
+                  <a href="{{ a.file_url }}" target="_blank" rel="noopener">
+                    <img alt="{{ a.file_name }}" src="{{ a.file_url }}" />
+                  </a>
+                {% else %}
+                  <a href="{{ a.file_url }}" target="_blank" rel="noopener">预览</a>
+                {% endif %}
+              {% endwith %}
+            </div>
+
+            <div class="ors-meta">
+              <div class="ors-name">
+                <a href="{% url 'admin:training_mediaasset_change' a.id %}">{{ a.file_name }}</a>
+              </div>
+              <div class="ors-sub">
+                {{ a.storage_backend }}{% if a.object_key %} · {{ a.object_key }}{% endif %}
+                {% if a.uploaded_by %} · {{ a.uploaded_by }}{% endif %}
+                · {{ a.created_at }}
+              </div>
+              <div class="ors-sub">
+                <a href="{{ a.file_url }}" target="_blank" rel="noopener">{{ a.file_url }}</a>
+              </div>
+            </div>
+
+            <div class="ors-actions">
+              <form method="post" action="{% url 'admin:training_mediaasset_quick_delete' a.id %}">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{% url 'admin:training_mediaasset_grouped' %}" />
+                <button type="submit" class="button deletelink">删除</button>
+              </form>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    </details>
+  {% empty %}
+    <p>{% trans "No results found." %}</p>
+  {% endfor %}
+{% endblock %}
+

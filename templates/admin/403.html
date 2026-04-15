@@ -1,0 +1,16 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block content %}
+  <h1>{% trans "Permission denied" %}</h1>
+
+  <p>
+    您当前以 <strong>{{ request.user }}</strong> 登录，但是没有这个页面的访问权限。
+  </p>
+
+  <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap;">
+    <a class="button" href="{% url 'switch_user' %}">使用另外一个账号登录</a>
+    <a class="button" href="{% url 'root' %}">返回系统首页</a>
+  </div>
+{% endblock %}
+
