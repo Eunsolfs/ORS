@@ -16,6 +16,21 @@
   - `DJANGO_ALLOWED_HOSTS=你的域名,服务器IP`
   - 数据库切换为 MySQL（见 `.env.example`）
 
+如果你不想手动改 `.env`，也可以在执行“一键安装脚本”时，通过命令行临时传入环境变量（脚本会写回 `.env`），例如 MySQL：
+
+```bash
+cd /www/wwwroot/ors
+DB_ENGINE=django.db.backends.mysql \
+DB_NAME=ors \
+DB_USER=ors \
+DB_PASSWORD=strong-password \
+DB_HOST=127.0.0.1 \
+DB_PORT=3306 \
+./scripts/baota_install.sh
+```
+
+> 注意：脚本不会替你创建 MySQL 数据库/用户，只负责把参数写入 `.env` 后运行 `migrate`。
+
 ## 3. 安装依赖与初始化
 ```bash
 cd /www/wwwroot/ors
@@ -73,4 +88,25 @@ location / {
 - **root**：`is_superuser=True`，全局管理所有科室与数据
 - **科室管理员**：`DepartmentMember.role_in_department=admin`，只能管理本科室数据（导出权限也在此）
 - **科室成员**：`member`，可查看/新增/编辑自己填报的交班条目
+
+## 8. 一键安装脚本（宝塔推荐）
+
+你可以跳过“手工步骤”，直接用脚本初始化 venv、依赖、数据库迁移、bootstrap 数据与静态文件。
+
+```bash
+cd /www/wwwroot/ors
+chmod +x scripts/baota_install.sh
+./scripts/baota_install.sh
+```
+
+若要改端口/worker（会影响脚本输出的 gunicorn 启动命令），可在执行前设置环境变量：
+
+```bash
+cd /www/wwwroot/ors
+BIND_PORT=9001 GUNICORN_WORKERS=3 ./scripts/baota_install.sh
+```
+
+脚本会在结束时输出：
+- 推荐的 `gunicorn` 启动命令
+- 若未提供 `ROOT_PASSWORD` / `ADMIN_PASSWORD`，则会生成并打印初次 `root/admin` 密码
 
