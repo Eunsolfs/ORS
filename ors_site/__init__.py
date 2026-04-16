@@ -1,1 +1,5 @@
-__version__ = "1.1"
+import pymysql
+
+pymysql.install_as_MySQLdb()
+
+__version__ = "1.1.1"
