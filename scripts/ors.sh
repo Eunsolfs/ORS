@@ -122,7 +122,7 @@ handle_dirty_worktree_before_upgrade() {
 }
 
 menu_loop() {
-  local repo_url="" username="" password="" name="" new_username="" active="" target=""
+  local repo_url="" username="" password="" name="" new_username="" active="" target="" skip_test_choice=""
   while true; do
     show_menu
     read -r -p "请输入数字选项: " choice
@@ -166,21 +166,36 @@ menu_loop() {
       7)
         read -r -p "仓库地址(可留空): " repo_url
         repo_url="${repo_url:-$DEFAULT_REPO_URL}"
+        read -r -p "是否跳过测试（推荐线上选 y）? [Y/n]: " skip_test_choice
         handle_dirty_worktree_before_upgrade || continue
-        upgrade_run --repo-url "$repo_url"
+        if [ "$skip_test_choice" = "n" ] || [ "$skip_test_choice" = "N" ]; then
+          upgrade_run --repo-url "$repo_url"
+        else
+          upgrade_run --repo-url "$repo_url" --skip-test
+        fi
         ;;
       8)
         read -r -p "目标 tag（如 v1.3.0）: " target
         read -r -p "仓库地址(可留空): " repo_url
         repo_url="${repo_url:-$DEFAULT_REPO_URL}"
+        read -r -p "是否跳过测试（推荐线上选 y）? [Y/n]: " skip_test_choice
         handle_dirty_worktree_before_upgrade || continue
-        upgrade_run --repo-url "$repo_url" --target "$target" --yes
+        if [ "$skip_test_choice" = "n" ] || [ "$skip_test_choice" = "N" ]; then
+          upgrade_run --repo-url "$repo_url" --target "$target" --yes
+        else
+          upgrade_run --repo-url "$repo_url" --target "$target" --yes --skip-test
+        fi
         ;;
       9)
         read -r -p "仓库地址(可留空): " repo_url
         repo_url="${repo_url:-$DEFAULT_REPO_URL}"
+        read -r -p "是否跳过测试（推荐线上选 y）? [Y/n]: " skip_test_choice
         handle_dirty_worktree_before_upgrade || continue
-        upgrade_run --repo-url "$repo_url" --target main --yes
+        if [ "$skip_test_choice" = "n" ] || [ "$skip_test_choice" = "N" ]; then
+          upgrade_run --repo-url "$repo_url" --target main --yes
+        else
+          upgrade_run --repo-url "$repo_url" --target main --yes --skip-test
+        fi
         ;;
       0)
         echo "已退出。"
