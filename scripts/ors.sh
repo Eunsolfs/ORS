@@ -9,8 +9,12 @@ if [ -x ".venv/bin/python" ]; then
   PYTHON_BIN=".venv/bin/python"
 elif [ -x ".venv/Scripts/python.exe" ]; then
   PYTHON_BIN=".venv/Scripts/python.exe"
+elif command -v python3 >/dev/null 2>&1; then
+  PYTHON_BIN="python3"
+elif command -v python >/dev/null 2>&1; then
+  PYTHON_BIN="python"
 else
-  echo "[ERROR] 未找到项目虚拟环境 Python，请先初始化 .venv"
+  echo "[ERROR] 未找到可用 Python（.venv/python3/python）"
   exit 1
 fi
 

@@ -20,6 +20,7 @@ from typing import Iterable, Optional
 
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
+DEFAULT_REPO_URL = "https://github.com/Eunsolfs/ORS.git"
 
 
 @dataclass
@@ -118,7 +119,9 @@ def detect_python_bins() -> tuple[Path, Path]:
         py = ROOT_DIR / ".venv" / "bin" / "python"
         pip = ROOT_DIR / ".venv" / "bin" / "pip"
     if not py.exists() or not pip.exists():
-        raise RuntimeError("未找到虚拟环境，请先执行初始化脚本（如 scripts/1panel_python_install.sh）。")
+        if sys.executable:
+            return Path(sys.executable), Path(sys.executable)
+        raise RuntimeError("未找到虚拟环境或系统 Python。")
     return py, pip
 
 
@@ -200,7 +203,10 @@ def checkout_target(target: str) -> None:
 
 def run_upgrade_steps(skip_test: bool) -> None:
     py, pip = detect_python_bins()
-    run_cmd([str(pip), "install", "-r", "requirements.txt"])
+    if pip == py:
+        run_cmd([str(py), "-m", "pip", "install", "-r", "requirements.txt"])
+    else:
+        run_cmd([str(pip), "install", "-r", "requirements.txt"])
     run_cmd([str(py), "manage.py", "migrate", "--noinput"])
     run_cmd([str(py), "manage.py", "collectstatic", "--noinput"])
     run_cmd([str(py), "manage.py", "check"])
@@ -214,11 +220,12 @@ def main() -> int:
     parser.add_argument("--target", help="直接指定升级目标：main 或 tag（如 v1.2.0）")
     parser.add_argument("--yes", action="store_true", help="跳过交互确认（需搭配 --target）")
     parser.add_argument("--skip-test", action="store_true", help="升级时跳过 manage.py test training")
-    parser.add_argument("--repo-url", help="远端仓库地址（当前目录无 .git 或无 origin 时必填）")
+    parser.add_argument("--repo-url", help="远端仓库地址（默认: https://github.com/Eunsolfs/ORS.git）")
     args = parser.parse_args()
 
     try:
-        bootstrapped = bootstrap_repo_if_needed(args.repo_url)
+        repo_url = args.repo_url or DEFAULT_REPO_URL
+        bootstrapped = bootstrap_repo_if_needed(repo_url)
         if bootstrapped:
             print("[INFO] 已初始化 git 仓库并对齐到 origin/main。")
         ensure_clean_worktree()

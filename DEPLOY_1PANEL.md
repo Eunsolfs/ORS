@@ -171,22 +171,22 @@ BIND_PORT=8989 GUNICORN_WORKERS=3 ./scripts/1panel_python_install.sh
 
 ```bash
 cd /opt/www/ors
-./.venv/bin/python scripts/release_manager.py --check
+python scripts/release_manager.py --check
 ```
 
 交互式升级（支持输入 `n/y/main/指定tag`）：
 
 ```bash
 cd /opt/www/ors
-./.venv/bin/python scripts/release_manager.py
+python scripts/release_manager.py
 ```
 
 如果网站目录是“仅上传代码、没有 `.git`”的首次接入，请带仓库地址：
 
 ```bash
 cd /opt/www/ors
-./.venv/bin/python scripts/release_manager.py --repo-url https://github.com/Eunsolfs/ORS.git --check
-./.venv/bin/python scripts/release_manager.py --repo-url https://github.com/Eunsolfs/ORS.git
+python scripts/release_manager.py --repo-url https://github.com/Eunsolfs/ORS.git --check
+python scripts/release_manager.py --repo-url https://github.com/Eunsolfs/ORS.git
 ```
 
 说明：
@@ -200,7 +200,7 @@ cd /opt/www/ors
 
 ```bash
 cd /opt/www/ors
-./.venv/bin/python scripts/release_manager.py --target v1.2.0 --yes
+python scripts/release_manager.py --target v1.2.0 --yes
 ```
 
 脚本会自动执行：
