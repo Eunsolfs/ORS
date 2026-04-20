@@ -13,20 +13,22 @@
 </div>
 
 <div class="container">
-  <div class="card" style="margin-bottom:12px;">
-    <div class="card-title">课程二维码</div>
-    <div class="card-sub">
-      线下贴码，扫码直达本课程。
-      {% if course.visibility == 'public' %}
-        当前为公开链接{% if course.has_public_access_password %}（需要访问密码）{% endif %}。
-      {% else %}
-        当前仅同科室成员登录后可访问。
-      {% endif %}
+  {% if can_show_course_qr %}
+    <div class="card" style="margin-bottom:12px;">
+      <div class="card-title">课程二维码</div>
+      <div class="card-sub">
+        线下贴码，扫码直达本课程。
+        {% if course.visibility == 'public' %}
+          当前为公开链接{% if course.has_public_access_password %}（需要访问密码）{% endif %}。
+        {% else %}
+          当前仅同科室成员登录后可访问。
+        {% endif %}
+      </div>
+      <div style="margin-top:10px;">
+        <img alt="课程二维码" style="width:180px;height:180px;border-radius:12px;border:1px solid var(--line);" src="{% url 'course_qr' dept_code=dept_code course_id=course.id %}" />
+      </div>
     </div>
-    <div style="margin-top:10px;">
-      <img alt="课程二维码" style="width:180px;height:180px;border-radius:12px;border:1px solid var(--line);" src="{% url 'course_qr' dept_code=dept_code course_id=course.id %}" />
-    </div>
-  </div>
+  {% endif %}
 
   {% if course.video_embed_html %}
     <div class="card">

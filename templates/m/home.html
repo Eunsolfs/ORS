@@ -4,6 +4,10 @@
 <div class="topbar">
   <div class="topbar-title">{{ department.name }}</div>
   <div class="topbar-actions">
+    <div class="topbar-user-meta">
+      <span class="badge badge-info">{{ request.user.username }}</span>
+      <span class="badge badge-dept">{{ department.name }}</span>
+    </div>
     <form action="{% url 'logout' %}" method="post" style="display:inline;">
       {% csrf_token %}
       <button type="submit" class="btn ghost">退出</button>

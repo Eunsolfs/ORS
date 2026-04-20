@@ -61,6 +61,14 @@
           {% else %}
             <a class="btn ghost small" href="{% url 'course_detail' dept_code=dept_code course_id=c.id %}">预览</a>
           {% endif %}
+          <button
+            type="button"
+            class="btn info small js-course-qr-btn"
+            data-course-title="{{ c.title }}"
+            data-qr-url="{% url 'course_qr' dept_code=dept_code course_id=c.id %}"
+          >
+            课程二维码
+          </button>
           <a class="btn ghost small" href="{% url 'course_edit' dept_code=dept_code course_id=c.id %}">编辑</a>
           <a class="btn ghost small" href="{% url 'course_delete' dept_code=dept_code course_id=c.id %}">删除</a>
         </div>
@@ -89,6 +97,14 @@
         <div class="card-sub">更新时间：{{ c.updated_at }}</div>
         <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
           <a class="btn ghost small" href="{% url 'course_detail' dept_code=dept_code course_id=c.id %}">预览</a>
+          <button
+            type="button"
+            class="btn info small js-course-qr-btn"
+            data-course-title="{{ c.title }}"
+            data-qr-url="{% url 'course_qr' dept_code=dept_code course_id=c.id %}"
+          >
+            课程二维码
+          </button>
           <a class="btn ghost small" href="{% url 'course_edit' dept_code=dept_code course_id=c.id %}">编辑</a>
           <a class="btn ghost small" href="{% url 'course_delete' dept_code=dept_code course_id=c.id %}">删除</a>
         </div>
@@ -119,6 +135,14 @@
         <div class="card-sub">更新时间：{{ c.updated_at }}</div>
         <div class="inactive-actions" style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
           <a class="btn ghost small" href="{% url 'course_detail' dept_code=dept_code course_id=c.id %}">预览</a>
+          <button
+            type="button"
+            class="btn info small js-course-qr-btn"
+            data-course-title="{{ c.title }}"
+            data-qr-url="{% url 'course_qr' dept_code=dept_code course_id=c.id %}"
+          >
+            课程二维码
+          </button>
           <a class="btn ghost small" href="{% url 'course_edit' dept_code=dept_code course_id=c.id %}">编辑</a>
           <a class="btn ghost small" href="{% url 'course_delete' dept_code=dept_code course_id=c.id %}">删除</a>
         </div>
@@ -126,6 +150,19 @@
     {% empty %}
       <div class="card"><div class="card-sub">暂无失效课程。</div></div>
     {% endfor %}
+  </div>
+</div>
+
+<div class="qr-modal-backdrop" id="course-qr-modal" hidden>
+  <div class="qr-modal-card">
+    <div class="qr-modal-title" id="course-qr-title"></div>
+    <div class="qr-modal-image-wrap">
+      <img id="course-qr-image" alt="课程二维码" />
+    </div>
+    <div class="qr-modal-hint">可直接截图分享给同事。</div>
+    <div class="qr-modal-actions">
+      <button type="button" class="btn ghost small" id="course-qr-close-btn">关闭</button>
+    </div>
   </div>
 </div>
 
@@ -138,6 +175,37 @@
       panels.forEach(p => p.classList.toggle('is-active', p.dataset.panel === target));
     }
     tabs.forEach(t => t.addEventListener('click', () => activate(t.dataset.target)));
+
+    const qrModal = document.getElementById('course-qr-modal');
+    const qrTitle = document.getElementById('course-qr-title');
+    const qrImage = document.getElementById('course-qr-image');
+    const closeBtn = document.getElementById('course-qr-close-btn');
+    const qrBtns = Array.from(document.querySelectorAll('.js-course-qr-btn'));
+
+    function closeQrModal() {
+      if (!qrModal) return;
+      qrModal.hidden = true;
+    }
+
+    qrBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (!qrModal || !qrTitle || !qrImage) return;
+        qrTitle.textContent = btn.dataset.courseTitle || '课程二维码';
+        qrImage.src = btn.dataset.qrUrl || '';
+        qrModal.hidden = false;
+      });
+    });
+
+    if (closeBtn) {
+      closeBtn.addEventListener('click', closeQrModal);
+    }
+    if (qrModal) {
+      qrModal.addEventListener('click', (e) => {
+        if (e.target === qrModal) {
+          closeQrModal();
+        }
+      });
+    }
   })();
 </script>
 {% endblock %}

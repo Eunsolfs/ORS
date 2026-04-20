@@ -71,10 +71,18 @@ def course_detail(request, dept_code: str, course_id: int):
     department = request.department  # type: ignore[attr-defined]
     course = get_object_or_404(Course, pk=course_id, department=department)
     _ensure_course_visible_for_member(request, department, course)
+    membership = DepartmentMember.objects.filter(user=request.user, department=department, is_active=True).first()
+    can_show_course_qr = bool(request.user.is_superuser or (membership and membership.role_in_department == DepartmentMember.Role.ADMIN))
     return render(
         request,
         "m/course_detail.html",
-        {"department": department, "dept_code": dept_code, "course": course, "is_public_view": False},
+        {
+            "department": department,
+            "dept_code": dept_code,
+            "course": course,
+            "is_public_view": False,
+            "can_show_course_qr": can_show_course_qr,
+        },
     )
 
 
@@ -104,7 +112,13 @@ def course_public_detail(request, dept_code: str, course_id: int):
     return render(
         request,
         "m/course_detail.html",
-        {"department": department, "dept_code": dept_code, "course": course, "is_public_view": True},
+        {
+            "department": department,
+            "dept_code": dept_code,
+            "course": course,
+            "is_public_view": True,
+            "can_show_course_qr": False,
+        },
     )
 
 

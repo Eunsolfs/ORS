@@ -66,7 +66,7 @@ class CourseAccessTests(TestCase):
     def test_public_course_with_password_needs_verification(self):
         course = self._make_course(visibility=Course.Visibility.PUBLIC)
         course.set_public_access_password("abc123")
-        course.save(update_fields=["public_access_password_hash"])
+        course.save(update_fields=["public_access_password_hash", "public_access_password_plain"])
         url = reverse("course_public_detail", kwargs={"dept_code": self.department.code, "course_id": course.id})
 
         get_resp = self.client.get(url)
@@ -96,3 +96,34 @@ class CourseAccessTests(TestCase):
         self.client.login(username="admin1", password="pass123456")
         admin_resp = self.client.get(edit_url)
         self.assertEqual(admin_resp.status_code, 200)
+
+    def test_qr_section_hidden_for_member_and_public_visitors(self):
+        dept_course = self._make_course(visibility=Course.Visibility.DEPARTMENT)
+        dept_url = reverse("course_detail", kwargs={"dept_code": self.department.code, "course_id": dept_course.id})
+
+        self.client.login(username="member1", password="pass123456")
+        member_resp = self.client.get(dept_url)
+        self.assertEqual(member_resp.status_code, 200)
+        self.assertNotContains(member_resp, "课程二维码")
+        self.client.logout()
+
+        self.client.login(username="admin1", password="pass123456")
+        admin_resp = self.client.get(dept_url)
+        self.assertEqual(admin_resp.status_code, 200)
+        self.assertContains(admin_resp, "课程二维码")
+        self.client.logout()
+
+        public_course = self._make_course(visibility=Course.Visibility.PUBLIC, title="公开课程")
+        public_url = reverse("course_public_detail", kwargs={"dept_code": self.department.code, "course_id": public_course.id})
+        public_resp = self.client.get(public_url)
+        self.assertEqual(public_resp.status_code, 200)
+        self.assertNotContains(public_resp, "课程二维码")
+
+    def test_manage_list_contains_qr_button_for_course_items(self):
+        self._make_course(visibility=Course.Visibility.PUBLIC)
+        manage_url = reverse("course_manage_list", kwargs={"dept_code": self.department.code})
+        self.client.login(username="admin1", password="pass123456")
+        resp = self.client.get(manage_url)
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, "课程二维码")
+        self.assertContains(resp, "js-course-qr-btn")
