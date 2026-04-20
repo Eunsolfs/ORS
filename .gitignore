@@ -41,5 +41,3 @@ htmlcov/
 .DS_Store
 Thumbs.db
 
-# Local-only release helper (Windows)
-scripts/local_release.bat
