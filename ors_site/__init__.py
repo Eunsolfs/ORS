@@ -2,4 +2,4 @@ import pymysql
 
 pymysql.install_as_MySQLdb()
 
-__version__ = "1.3.5"
+__version__ = "1.3.6"

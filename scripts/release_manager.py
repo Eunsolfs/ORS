@@ -107,7 +107,10 @@ def bootstrap_repo_if_needed(repo_url: Optional[str]) -> bool:
     run_cmd(["git", "init"])
     run_cmd(["git", "remote", "add", "origin", repo_url])
     run_cmd(["git", "fetch", "--tags", "origin"])
-    run_cmd(["git", "checkout", "-B", "main", "origin/main"])
+    # First-time bootstrap in existing code directories may contain many
+    # untracked files (because repository was not initialized yet). Force
+    # checkout to align working tree to origin/main.
+    run_cmd(["git", "checkout", "-f", "-B", "main", "origin/main"])
     return True
 
 
