@@ -163,6 +163,56 @@ BIND_PORT=8989 GUNICORN_WORKERS=3 ./scripts/1panel_python_install.sh
 - 交班表导出 PDF 依赖 `soffice`（LibreOffice），若未安装可先不启用该能力。
 - 使用入口：后台 `/admin/`；固定交班二维码 `/m/<dept_code>/handover/today/`。
 
+## 7. 一键检查更新与升级（推荐）
+
+新增脚本：`scripts/release_manager.py`（交互式）。
+
+先检查是否有更新：
+
+```bash
+cd /opt/www/ors
+./.venv/bin/python scripts/release_manager.py --check
+```
+
+交互式升级（支持输入 `n/y/main/指定tag`）：
+
+```bash
+cd /opt/www/ors
+./.venv/bin/python scripts/release_manager.py
+```
+
+如果网站目录是“仅上传代码、没有 `.git`”的首次接入，请带仓库地址：
+
+```bash
+cd /opt/www/ors
+./.venv/bin/python scripts/release_manager.py --repo-url https://github.com/Eunsolfs/ORS.git --check
+./.venv/bin/python scripts/release_manager.py --repo-url https://github.com/Eunsolfs/ORS.git
+```
+
+说明：
+
+- 输入 `y`：自动升级到推荐目标（优先最新 tag，其次 main）
+- 输入 `main`：升级到 `origin/main`
+- 输入 `v1.2.0` 这类 tag：升级到指定版本
+- 输入 `n`：取消
+
+非交互方式示例：
+
+```bash
+cd /opt/www/ors
+./.venv/bin/python scripts/release_manager.py --target v1.2.0 --yes
+```
+
+脚本会自动执行：
+
+- `git fetch --tags origin`
+- 切换目标版本（`main` 或指定 `tag`）
+- 安装依赖
+- `migrate`
+- `collectstatic`
+- `check`
+- 默认执行 `test training`（可加 `--skip-test` 跳过）
+
 ---
 
 ## 方式 A：Docker Compose（原方案保留）

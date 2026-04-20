@@ -189,3 +189,54 @@ cp .env.example .env
 - 科室管理员：`DepartmentMember.role_in_department=admin`，只能管理本科室数据
 - 科室成员：`member`，可查看/新增/编辑自己填报的交班条目
 
+## 9. 一键检查更新与升级（推荐）
+
+新增脚本：`scripts/release_manager.py`（交互式）。
+
+仅检查远端是否有更新：
+
+```bash
+cd /www/wwwroot/ors
+./.venv/bin/python scripts/release_manager.py --check
+```
+
+交互式升级（支持输入 `n/y/main/指定tag`）：
+
+```bash
+cd /www/wwwroot/ors
+./.venv/bin/python scripts/release_manager.py
+```
+
+如果当前站点目录没有 `.git`，首次使用请传入仓库地址：
+
+```bash
+cd /www/wwwroot/ors
+./.venv/bin/python scripts/release_manager.py --repo-url https://github.com/Eunsolfs/ORS.git --check
+./.venv/bin/python scripts/release_manager.py --repo-url https://github.com/Eunsolfs/ORS.git
+```
+
+交互输入说明：
+
+- `y`：升级到推荐目标（优先最新 tag，其次 main）
+- `main`：升级到 `origin/main`
+- `v1.2.0`：升级到指定版本
+- `n`：取消升级
+
+自动化（非交互）示例：
+
+```bash
+cd /www/wwwroot/ors
+./.venv/bin/python scripts/release_manager.py --target v1.2.0 --yes
+```
+
+脚本内置流程：
+
+- 检查工作区是否干净（避免误覆盖）
+- `git fetch --tags origin`
+- 切换目标版本
+- `pip install -r requirements.txt`
+- `manage.py migrate --noinput`
+- `manage.py collectstatic --noinput`
+- `manage.py check`
+- 默认执行 `manage.py test training`（可用 `--skip-test` 跳过）
+
