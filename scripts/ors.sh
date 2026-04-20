@@ -80,6 +80,47 @@ show_menu() {
 EOF
 }
 
+is_dirty_worktree() {
+  if [ ! -d "$ROOT_DIR/.git" ]; then
+    return 1
+  fi
+  if [ -n "$(git -C "$ROOT_DIR" status --porcelain)" ]; then
+    return 0
+  fi
+  return 1
+}
+
+handle_dirty_worktree_before_upgrade() {
+  if ! is_dirty_worktree; then
+    return 0
+  fi
+
+  echo ""
+  echo "[WARN] 检测到工作区有未提交改动。"
+  echo "升级前请选择处理方式："
+  echo "  1) 自动暂存改动（git stash -u）后继续升级"
+  echo "  2) 丢弃本地改动并删除未跟踪文件（以目标版本为准）"
+  echo "  3) 取消本次升级"
+  read -r -p "请输入选项 [1/2/3]: " dirty_choice
+
+  case "$dirty_choice" in
+    1)
+      git -C "$ROOT_DIR" stash push -u -m "ors-auto-stash-before-upgrade"
+      echo "[INFO] 已自动暂存本地改动。"
+      ;;
+    2)
+      git -C "$ROOT_DIR" reset --hard
+      git -C "$ROOT_DIR" clean -fd
+      echo "[INFO] 已清理本地改动，将以目标版本内容为准。"
+      ;;
+    *)
+      echo "[INFO] 已取消升级。"
+      return 1
+      ;;
+  esac
+  return 0
+}
+
 menu_loop() {
   local repo_url="" username="" password="" name="" new_username="" active="" target=""
   while true; do
@@ -125,17 +166,20 @@ menu_loop() {
       7)
         read -r -p "仓库地址(可留空): " repo_url
         repo_url="${repo_url:-$DEFAULT_REPO_URL}"
+        handle_dirty_worktree_before_upgrade || continue
         upgrade_run --repo-url "$repo_url"
         ;;
       8)
         read -r -p "目标 tag（如 v1.3.0）: " target
         read -r -p "仓库地址(可留空): " repo_url
         repo_url="${repo_url:-$DEFAULT_REPO_URL}"
+        handle_dirty_worktree_before_upgrade || continue
         upgrade_run --repo-url "$repo_url" --target "$target" --yes
         ;;
       9)
         read -r -p "仓库地址(可留空): " repo_url
         repo_url="${repo_url:-$DEFAULT_REPO_URL}"
+        handle_dirty_worktree_before_upgrade || continue
         upgrade_run --repo-url "$repo_url" --target main --yes
         ;;
       0)

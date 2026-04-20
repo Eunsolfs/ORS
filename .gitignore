@@ -23,6 +23,16 @@ staticfiles/
 # Environment (keep .env.example tracked)
 .env
 .env.local
+.env.*
+!.env.example
+
+# Test / coverage caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
 
 # IDE / OS
 .idea/
