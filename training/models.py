@@ -1,10 +1,20 @@
 from django.conf import settings
 from django.db import models
+from django.contrib.auth.hashers import check_password, make_password
 
 from orgs.models import Department
 
 
 class Course(models.Model):
+    class Status(models.TextChoices):
+        DRAFT = "draft", "草稿"
+        PUBLISHED = "published", "发布"
+        INACTIVE = "inactive", "失效"
+
+    class Visibility(models.TextChoices):
+        DEPARTMENT = "department", "同科室可见（需登录）"
+        PUBLIC = "public", "所有人可见（可选访问密码）"
+
     department = models.ForeignKey(Department, on_delete=models.CASCADE, related_name="courses", verbose_name="科室")
     title = models.CharField(max_length=200, verbose_name="课程标题")
     slug = models.SlugField(max_length=220, blank=True, default="", verbose_name="别名")
@@ -16,7 +26,15 @@ class Course(models.Model):
     video_url = models.CharField(max_length=500, blank=True, default="", verbose_name="视频链接")
     video_embed_html = models.TextField(blank=True, default="", verbose_name="视频嵌入代码")
 
-    status = models.CharField(max_length=20, default="published", verbose_name="状态")
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PUBLISHED, verbose_name="状态")
+    visibility = models.CharField(
+        max_length=20,
+        choices=Visibility.choices,
+        default=Visibility.DEPARTMENT,
+        verbose_name="访问权限",
+    )
+    public_access_password_hash = models.CharField(max_length=128, blank=True, default="", verbose_name="公开访问密码哈希")
+    public_access_password_plain = models.CharField(max_length=128, blank=True, default="", verbose_name="公开访问密码明文")
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="created_courses", verbose_name="创建人"
     )
@@ -35,6 +53,20 @@ class Course(models.Model):
 
     def __str__(self) -> str:
         return self.title
+
+    @property
+    def has_public_access_password(self) -> bool:
+        return bool(self.public_access_password_hash)
+
+    def set_public_access_password(self, raw_password: str) -> None:
+        raw = (raw_password or "").strip()
+        self.public_access_password_hash = make_password(raw) if raw else ""
+        self.public_access_password_plain = raw
+
+    def check_public_access_password(self, raw_password: str) -> bool:
+        if not self.public_access_password_hash:
+            return True
+        return check_password(raw_password or "", self.public_access_password_hash)
 
 
 class MediaAsset(models.Model):

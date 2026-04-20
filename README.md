@@ -1,6 +1,6 @@
 # ORS（手术室事项安排系统）
 
-**当前版本：1.1.1**（2026-04-16）
+**当前版本：1.2.0**（2026-04-20）
 
 ## 快速启动（本机开发）
 ```powershell
@@ -14,6 +14,11 @@ copy .env.example .env
 
 后台：`/admin/`
 
+## 生产部署
+
+- **1Panel（三种方式：Compose / 宿主机 Python / 1Panel Python 容器）**：见 [DEPLOY_1PANEL.md](DEPLOY_1PANEL.md)
+- **宝塔面板**：见 [DEPLOY_BAOTA.md](DEPLOY_BAOTA.md)
+
 ## 新增能力（已完成）
 - 教程编辑页支持可视化富文本（TinyMCE）
 - 教程图片可直接上传并自动插入内容
@@ -24,6 +29,20 @@ copy .env.example .env
 - 科室管理员可使用：
   - 报表统计中心：`/m/<dept_code>/reports/`
   - 今日大屏：`/m/<dept_code>/dashboard/today/`
+- 教程支持“访问权限”配置：
+  - 同科室可见（登录后访问）
+  - 公开可见（可配置访问密码）
+- 教程详情支持公开访问入口：`/m/<dept_code>/courses/public/<course_id>/`
+
+## 发布前最小检查
+```powershell
+.\.venv\Scripts\pip install -r requirements.txt
+.\.venv\Scripts\python manage.py migrate
+.\.venv\Scripts\python manage.py check
+.\.venv\Scripts\python manage.py test training
+```
+
+若以上命令通过，再执行 `collectstatic` 并启动 Gunicorn / 平台服务。
 
 ## 存储配置位置（root）
 - 后台 `SystemStorageSetting` 中设置 `backend` 与对应参数

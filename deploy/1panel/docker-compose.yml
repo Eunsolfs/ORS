@@ -1,0 +1,46 @@
+# ORS — 1Panel 一键编排（含 MySQL）
+# 使用：在仓库根目录旁保留本目录结构，或将整个 ORS 仓库上传到服务器后，
+# 在 1Panel「容器 → Compose」中选择本文件所在目录创建编排。
+#
+# 首次部署前：复制 env.example 为 .env 并修改密钥、域名、数据库密码等。
+
+services:
+  db:
+    image: mysql:8.0
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci --default-authentication-plugin=mysql_native_password
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${DB_NAME:-ors}
+      MYSQL_USER: ${DB_USER:-ors}
+      MYSQL_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?set MYSQL_ROOT_PASSWORD in .env}
+    volumes:
+      - ors_mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$$MYSQL_ROOT_PASSWORD\" || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+
+  web:
+    build:
+      context: ../..
+      dockerfile: deploy/1panel/Dockerfile
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      DB_HOST: db
+      DB_PORT: ${DB_PORT:-3306}
+    ports:
+      - "${APP_PUBLISH_PORT:-8000}:8000"
+    volumes:
+      - ors_media:/app/media
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  ors_mysql_data:
+  ors_media:

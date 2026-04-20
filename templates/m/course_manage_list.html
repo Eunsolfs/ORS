@@ -18,19 +18,127 @@
     </div>
   {% endif %}
 
-  <div class="list">
-    {% for c in courses %}
+  <div class="course-tabs">
+    <button type="button" class="course-tab-btn is-active" data-target="published">有效课程（{{ courses_published|length }}）</button>
+    <button type="button" class="course-tab-btn" data-target="draft">草稿（{{ courses_draft|length }}）</button>
+    <button type="button" class="course-tab-btn" data-target="inactive">失效课程（{{ courses_inactive|length }}）</button>
+  </div>
+
+  <div class="list course-tab-panel is-active" data-panel="published">
+    {% for c in courses_published %}
       <div class="card">
         <div class="card-title">{{ c.title }}</div>
-        <div class="card-sub">状态：{{ c.status }} | 更新时间：{{ c.updated_at }}</div>
+        <div class="course-meta-tags">
+          {% if c.status == 'published' %}
+            <span class="badge badge-ok">发布</span>
+          {% elif c.status == 'draft' %}
+            <span class="badge badge-warn">草稿</span>
+          {% else %}
+            <span class="badge badge-muted">失效</span>
+          {% endif %}
+
+          {% if c.visibility == 'public' %}
+            <span class="badge badge-info">所有人可见</span>
+          {% else %}
+            <span class="badge badge-dept">同科室可见</span>
+          {% endif %}
+
+          {% if c.visibility == 'public' %}
+            {% if c.has_public_access_password %}
+              <span class="badge badge-pwd-on">密码已启用</span>
+              <span class="badge badge-pwd-plain">密码：{{ c.public_access_password_plain }}</span>
+            {% else %}
+              <span class="badge badge-pwd-off">无访问密码</span>
+            {% endif %}
+          {% endif %}
+        </div>
+        <div class="card-sub">
+          更新时间：{{ c.updated_at }}
+        </div>
         <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
-          <a class="btn ghost small" href="{% url 'course_detail' dept_code=dept_code course_id=c.id %}">预览</a>
+          {% if c.visibility == 'public' %}
+            <a class="btn ghost small" href="{% url 'course_public_detail' dept_code=dept_code course_id=c.id %}" target="_blank">公开预览</a>
+          {% else %}
+            <a class="btn ghost small" href="{% url 'course_detail' dept_code=dept_code course_id=c.id %}">预览</a>
+          {% endif %}
           <a class="btn ghost small" href="{% url 'course_edit' dept_code=dept_code course_id=c.id %}">编辑</a>
           <a class="btn ghost small" href="{% url 'course_delete' dept_code=dept_code course_id=c.id %}">删除</a>
         </div>
       </div>
     {% endfor %}
   </div>
+
+  <div class="list course-tab-panel" data-panel="draft">
+    {% for c in courses_draft %}
+      <div class="card">
+        <div class="card-title">{{ c.title }}</div>
+        <div class="course-meta-tags">
+          <span class="badge badge-warn">草稿</span>
+          {% if c.visibility == 'public' %}
+            <span class="badge badge-info">所有人可见</span>
+            {% if c.has_public_access_password %}
+              <span class="badge badge-pwd-on">密码已启用</span>
+              <span class="badge badge-pwd-plain">密码：{{ c.public_access_password_plain }}</span>
+            {% else %}
+              <span class="badge badge-pwd-off">无访问密码</span>
+            {% endif %}
+          {% else %}
+            <span class="badge badge-dept">同科室可见</span>
+          {% endif %}
+        </div>
+        <div class="card-sub">更新时间：{{ c.updated_at }}</div>
+        <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
+          <a class="btn ghost small" href="{% url 'course_detail' dept_code=dept_code course_id=c.id %}">预览</a>
+          <a class="btn ghost small" href="{% url 'course_edit' dept_code=dept_code course_id=c.id %}">编辑</a>
+          <a class="btn ghost small" href="{% url 'course_delete' dept_code=dept_code course_id=c.id %}">删除</a>
+        </div>
+      </div>
+    {% empty %}
+      <div class="card"><div class="card-sub">暂无草稿课程。</div></div>
+    {% endfor %}
+  </div>
+
+  <div class="list course-tab-panel" data-panel="inactive">
+    {% for c in courses_inactive %}
+      <div class="card card-inactive-course">
+        <div class="card-title">{{ c.title }}</div>
+        <div class="course-meta-tags">
+          <span class="badge badge-muted">失效</span>
+          {% if c.visibility == 'public' %}
+            <span class="badge badge-info">所有人可见</span>
+            {% if c.has_public_access_password %}
+              <span class="badge badge-pwd-on">密码已启用</span>
+              <span class="badge badge-pwd-plain">密码：{{ c.public_access_password_plain }}</span>
+            {% else %}
+              <span class="badge badge-pwd-off">无访问密码</span>
+            {% endif %}
+          {% else %}
+            <span class="badge badge-dept">同科室可见</span>
+          {% endif %}
+        </div>
+        <div class="card-sub">更新时间：{{ c.updated_at }}</div>
+        <div class="inactive-actions" style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
+          <a class="btn ghost small" href="{% url 'course_detail' dept_code=dept_code course_id=c.id %}">预览</a>
+          <a class="btn ghost small" href="{% url 'course_edit' dept_code=dept_code course_id=c.id %}">编辑</a>
+          <a class="btn ghost small" href="{% url 'course_delete' dept_code=dept_code course_id=c.id %}">删除</a>
+        </div>
+      </div>
+    {% empty %}
+      <div class="card"><div class="card-sub">暂无失效课程。</div></div>
+    {% endfor %}
+  </div>
 </div>
+
+<script>
+  (function () {
+    const tabs = Array.from(document.querySelectorAll('.course-tab-btn'));
+    const panels = Array.from(document.querySelectorAll('.course-tab-panel'));
+    function activate(target) {
+      tabs.forEach(t => t.classList.toggle('is-active', t.dataset.target === target));
+      panels.forEach(p => p.classList.toggle('is-active', p.dataset.panel === target));
+    }
+    tabs.forEach(t => t.addEventListener('click', () => activate(t.dataset.target)));
+  })();
+</script>
 {% endblock %}
 

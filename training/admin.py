@@ -11,8 +11,8 @@ from .models import Course, MediaAsset
 
 @admin.register(Course)
 class CourseAdmin(admin.ModelAdmin):
-    list_display = ("department", "title", "status", "published_at")
-    list_filter = ("department", "status")
+    list_display = ("department", "title", "status", "visibility", "published_at")
+    list_filter = ("department", "status", "visibility")
     search_fields = ("title", "content_html")
 
     def get_urls(self):

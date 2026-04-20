@@ -28,6 +28,26 @@
         {{ form.status }}
       </div>
     </div>
+    <div class="grid2" style="margin-top:10px;">
+      <div class="field">
+        <label class="label">访问权限</label>
+        {{ form.visibility }}
+        <div class="muted" style="margin-top:4px;">同科室可见：登录并鉴权后访问；所有人可见：拿到链接即可访问。</div>
+      </div>
+      <div id="publicPasswordField" class="field" style="display:none;">
+        <label class="label">{{ form.enable_public_access_password }} 启用访问密码</label>
+        {% if form.enable_public_access_password.errors %}
+          <div class="muted" style="margin-top:4px;color:#b91c1c;">{{ form.enable_public_access_password.errors|striptags }}</div>
+        {% endif %}
+        <div id="publicPasswordInputWrap" style="display:none;margin-top:8px;">
+          {{ form.public_access_password }}
+          {% if form.public_access_password.errors %}
+            <div class="muted" style="margin-top:4px;color:#b91c1c;">{{ form.public_access_password.errors|striptags }}</div>
+          {% endif %}
+        </div>
+        <div class="muted" style="margin-top:4px;">仅在“所有人可见”时可启用；编辑时密码留空表示保持原密码。</div>
+      </div>
+    </div>
 
     <div class="field">
       <label class="label">教程内容（可视化编辑，支持图文视频混排）</label>
@@ -277,6 +297,22 @@
       editorRef.save();
       showVideoPreview(buildBiliIframe(bv));
     });
+
+    const visibilityField = document.getElementById('id_visibility');
+    const publicPasswordField = document.getElementById('publicPasswordField');
+    const enablePasswordField = document.getElementById('id_enable_public_access_password');
+    const publicPasswordInputWrap = document.getElementById('publicPasswordInputWrap');
+    function refreshPublicPasswordField() {
+      if (!visibilityField || !publicPasswordField) return;
+      const isPublic = visibilityField.value === 'public';
+      publicPasswordField.style.display = isPublic ? '' : 'none';
+      if (publicPasswordInputWrap && enablePasswordField) {
+        publicPasswordInputWrap.style.display = (isPublic && enablePasswordField.checked) ? '' : 'none';
+      }
+    }
+    visibilityField?.addEventListener('change', refreshPublicPasswordField);
+    enablePasswordField?.addEventListener('change', refreshPublicPasswordField);
+    refreshPublicPasswordField();
   })();
 </script>
 {% endblock %}

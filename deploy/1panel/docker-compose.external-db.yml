@@ -1,0 +1,23 @@
+# 使用已有 MySQL（或 1Panel「数据库」里创建的实例）时，用本文件替代 docker-compose.yml，
+# 或：docker compose -f docker-compose.external-db.yml up -d
+#
+# 使用前：
+# 1. 在 MySQL 中手动创建库与用户，并授权。
+# 2. 复制 env.example 为 .env，填写 DB_HOST / DB_NAME / DB_USER / DB_PASSWORD（指向外部库）。
+# 3. 删除或忽略 MYSQL_ROOT_PASSWORD（本编排不含 db 容器）。
+
+services:
+  web:
+    build:
+      context: ../..
+      dockerfile: deploy/1panel/Dockerfile
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "${APP_PUBLISH_PORT:-8000}:8000"
+    volumes:
+      - ors_media:/app/media
+
+volumes:
+  ors_media:

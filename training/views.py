@@ -2,6 +2,7 @@ import io
 
 import qrcode
 
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
 from django.http import Http404
@@ -20,6 +21,24 @@ from .forms import CourseForm
 from .models import Course, MediaAsset
 
 
+def _public_course_session_key(course: Course) -> str:
+    return f"course_public_ok:{course.id}"
+
+
+def _ensure_course_visible_for_member(request, department, course: Course):
+    if course.status == Course.Status.PUBLISHED:
+        return
+    membership = DepartmentMember.objects.filter(user=request.user, department=department, is_active=True).first()
+    is_dept_admin = bool(membership and membership.role_in_department == DepartmentMember.Role.ADMIN)
+    if not request.user.is_superuser and not is_dept_admin:
+        raise Http404("课程不可访问")
+
+
+def _ensure_course_visible_for_public(course: Course):
+    if course.status != Course.Status.PUBLISHED or course.visibility != Course.Visibility.PUBLIC:
+        raise Http404("课程不可访问")
+
+
 def _find_courses_referencing_asset(department, asset: MediaAsset):
     return Course.objects.filter(department=department).filter(
         Q(content_html__icontains=asset.file_url)
@@ -36,7 +55,7 @@ def course_list(request, dept_code: str):
     if not department:
         raise Http404("科室不存在")
 
-    courses = Course.objects.filter(department=department, status="published").order_by("-published_at", "-id")
+    courses = Course.objects.filter(department=department, status=Course.Status.PUBLISHED).order_by("-published_at", "-id")
     membership = DepartmentMember.objects.filter(user=request.user, department=department, is_active=True).first()
     can_manage = bool(request.user.is_superuser or (membership and membership.role_in_department == DepartmentMember.Role.ADMIN))
     return render(
@@ -51,17 +70,55 @@ def course_list(request, dept_code: str):
 def course_detail(request, dept_code: str, course_id: int):
     department = request.department  # type: ignore[attr-defined]
     course = get_object_or_404(Course, pk=course_id, department=department)
+    _ensure_course_visible_for_member(request, department, course)
     return render(
         request,
         "m/course_detail.html",
-        {"department": department, "dept_code": dept_code, "course": course},
+        {"department": department, "dept_code": dept_code, "course": course, "is_public_view": False},
+    )
+
+
+def course_public_detail(request, dept_code: str, course_id: int):
+    department = get_active_department_by_code(dept_code)
+    if not department:
+        raise Http404("科室不存在")
+    course = get_object_or_404(Course, pk=course_id, department=department)
+    _ensure_course_visible_for_public(course)
+
+    needs_password = course.has_public_access_password
+    has_verified = request.session.get(_public_course_session_key(course), False)
+
+    if needs_password and not has_verified:
+        if request.method == "POST":
+            entered_password = (request.POST.get("access_password") or "").strip()
+            if course.check_public_access_password(entered_password):
+                request.session[_public_course_session_key(course)] = True
+                return redirect("course_public_detail", dept_code=dept_code, course_id=course.id)
+            messages.error(request, "访问密码错误，请重试。")
+        return render(
+            request,
+            "m/course_public_access.html",
+            {"department": department, "dept_code": dept_code, "course": course},
+        )
+
+    return render(
+        request,
+        "m/course_detail.html",
+        {"department": department, "dept_code": dept_code, "course": course, "is_public_view": True},
     )
 
 
 @login_required
 @require_department_roles(DepartmentMember.Role.ADMIN, DepartmentMember.Role.MEMBER)
 def course_qr(request, dept_code: str, course_id: int):
-    url = request.build_absolute_uri(reverse("course_detail", kwargs={"dept_code": dept_code, "course_id": course_id}))
+    department = get_active_department_by_code(dept_code)
+    if not department:
+        raise Http404("科室不存在")
+    course = get_object_or_404(Course, pk=course_id, department=department)
+    if course.visibility == Course.Visibility.PUBLIC:
+        url = request.build_absolute_uri(reverse("course_public_detail", kwargs={"dept_code": dept_code, "course_id": course_id}))
+    else:
+        url = request.build_absolute_uri(reverse("course_detail", kwargs={"dept_code": dept_code, "course_id": course_id}))
     img = qrcode.make(url)
     buf = io.BytesIO()
     img.save(buf, format="PNG")
@@ -74,10 +131,20 @@ def course_qr(request, dept_code: str, course_id: int):
 def course_manage_list(request, dept_code: str):
     department = request.department  # type: ignore[attr-defined]
     courses = Course.objects.filter(department=department).order_by("-updated_at")
+    courses_draft = [c for c in courses if c.status == Course.Status.DRAFT]
+    courses_published = [c for c in courses if c.status == Course.Status.PUBLISHED]
+    courses_inactive = [c for c in courses if c.status == Course.Status.INACTIVE]
     return render(
         request,
         "m/course_manage_list.html",
-        {"department": department, "dept_code": dept_code, "courses": courses},
+        {
+            "department": department,
+            "dept_code": dept_code,
+            "courses": courses,
+            "courses_draft": courses_draft,
+            "courses_published": courses_published,
+            "courses_inactive": courses_inactive,
+        },
     )
 
 
@@ -91,12 +158,14 @@ def course_create(request, dept_code: str):
             course: Course = form.save(commit=False)
             course.department = department
             course.created_by = request.user
-            if course.status == "published" and not course.published_at:
+            if course.status == Course.Status.PUBLISHED and not course.published_at:
                 course.published_at = timezone.now()
+            if course.status != Course.Status.PUBLISHED:
+                course.published_at = None
             course.save()
             return redirect("course_manage_list", dept_code=dept_code)
     else:
-        form = CourseForm(initial={"status": "published"})
+        form = CourseForm(initial={"status": Course.Status.PUBLISHED, "visibility": Course.Visibility.DEPARTMENT})
     return render(
         request,
         "m/course_form.html",
@@ -113,8 +182,10 @@ def course_edit(request, dept_code: str, course_id: int):
         form = CourseForm(request.POST, instance=course)
         if form.is_valid():
             course = form.save(commit=False)
-            if course.status == "published" and not course.published_at:
+            if course.status == Course.Status.PUBLISHED and not course.published_at:
                 course.published_at = timezone.now()
+            if course.status != Course.Status.PUBLISHED:
+                course.published_at = None
             course.save()
             return redirect("course_manage_list", dept_code=dept_code)
     else:
