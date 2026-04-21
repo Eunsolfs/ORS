@@ -6,8 +6,8 @@ from orgs.models import Department
 
 class HandoverSession(models.Model):
     class TriStatus(models.TextChoices):
-        YES = "yes", "√"
-        NO = "no", "×"
+        YES = "yes", "✅"
+        NO = "no", "❌"
         OTHER = "other", "其他"
 
     department = models.ForeignKey(Department, on_delete=models.CASCADE, related_name="handover_sessions", verbose_name="科室")
@@ -64,8 +64,8 @@ class HandoverSession(models.Model):
 
 class HandoverItem(models.Model):
     class YesNo(models.TextChoices):
-        YES = "√", "√"
-        NO = "×", "×"
+        YES = "√", "✅"
+        NO = "×", "❌"
 
     class SkinCondition(models.TextChoices):
         NORMAL = "完整", "完整"

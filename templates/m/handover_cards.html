@@ -2,6 +2,30 @@
 {% block title %}交班 {{ session.handover_date }} - ORS{% endblock %}
 {% block content %}
 <style>
+  .handover-tabs{
+    display:flex;
+    gap:10px;
+    margin-bottom:12px;
+  }
+  .handover-tab-btn{
+    flex:1;
+    border:1px solid #cfe0f7;
+    border-radius:12px;
+    background:#fff;
+    color:#365078;
+    font-weight:700;
+    padding:10px 12px;
+    cursor:pointer;
+    box-shadow:0 4px 12px rgba(30,42,67,.05);
+  }
+  .handover-tab-btn.is-active{
+    color:#fff;
+    border-color:transparent;
+    background:linear-gradient(180deg,#2f7ed8,#1f5faa);
+    box-shadow:0 8px 18px rgba(31,95,170,.28);
+  }
+  .handover-tab-panel{display:none;}
+  .handover-tab-panel.is-active{display:block;}
   .handover-card-enhanced{
     display:none;
     border:1px solid #cfe0f7;
@@ -93,6 +117,13 @@
     font-weight:500;
   }
   @media (max-width:640px){
+    .handover-tabs{
+      gap:8px;
+    }
+    .handover-tab-btn{
+      padding:8px 10px;
+      font-size:14px;
+    }
     .handover-meta-item{
       flex:1 1 0;
       justify-content:center;
@@ -131,79 +162,121 @@
 </div>
 
 <div class="container">
-  <div class="card" style="margin-bottom:12px;">
-    <div class="card-title">总览</div>
-    <div class="kv compact" style="margin-top:8px; display:grid; grid-template-columns: repeat(2, 1fr); gap:8px;">
-      <div><span class="k">择期</span><span class="v">{{ session.elective_count|default:"-" }}</span></div>
-      <div><span class="k">急诊</span><span class="v">{{ session.emergency_count|default:"-" }}</span></div>
-      <div><span class="k">抢救</span><span class="v">{{ session.rescue_count|default:"-" }}</span></div>
-      <div><span class="k">备注</span><span class="v">{{ session.notes|default:"-"|linebreaksbr }}</span></div>
-    </div>
+  <div class="handover-tabs">
+    <button class="handover-tab-btn is-active" type="button" data-tab="overview">总览与检查项</button>
+    <button class="handover-tab-btn" type="button" data-tab="surgery">手术信息</button>
   </div>
 
-  <div class="card" style="margin-bottom:12px;">
-    <div class="card-title">检查项</div>
-    <div class="kv compact" style="margin-top:8px; display:grid; grid-template-columns: repeat(2, 1fr); gap:8px;">
-      <div><span class="k">标本交接</span><span class="v">{{ session.specimen_handover_status|default_if_none:"" }} {{ session.specimen_handover_note|default:"" }}</span></div>
-      <div><span class="k">层流运行</span><span class="v">{{ session.laminar_flow_running_status|default_if_none:"" }} {{ session.laminar_flow_running_note|default:"" }}</span></div>
-      <div><span class="k">生物监测</span><span class="v">{{ session.bio_monitoring_status|default_if_none:"" }} {{ session.bio_monitoring_note|default:"" }}</span></div>
-      <div><span class="k">急救车</span><span class="v">{{ session.crash_cart_status|default_if_none:"" }} {{ session.crash_cart_note|default:"" }}</span></div>
-      <div><span class="k">消防安全</span><span class="v">{{ session.fire_safety_status|default_if_none:"" }} {{ session.fire_safety_note|default:"" }}</span></div>
-      <div><span class="k">钥匙管理</span><span class="v">{{ session.key_management_status|default_if_none:"" }} {{ session.key_management_note|default:"" }}</span></div>
-      <div><span class="k">其它合格证收纳</span><span class="v">{{ session.certs_in_place_status|default_if_none:"" }} {{ session.certs_in_place_note|default:"" }}</span></div>
-      <div><span class="k">其它事件</span><span class="v">{{ session.other_incidents|default:"-"|linebreaksbr }}</span></div>
+  <section class="handover-tab-panel is-active" data-panel="overview">
+    <div class="card" style="margin-bottom:12px;">
+      <div class="card-title">总览</div>
+      <div class="kv compact" style="margin-top:8px; display:grid; grid-template-columns: repeat(2, 1fr); gap:8px;">
+        <div><span class="k">择期</span><span class="v">{{ session.elective_count|default:"-" }}</span></div>
+        <div><span class="k">急诊</span><span class="v">{{ session.emergency_count|default:"-" }}</span></div>
+        <div><span class="k">抢救</span><span class="v">{{ session.rescue_count|default:"-" }}</span></div>
+        <div><span class="k">备注</span><span class="v">{{ session.notes|default:"-"|linebreaksbr }}</span></div>
+      </div>
     </div>
-  </div>
 
-  {% if items|length == 0 %}
-    <div class="card">
-      <div class="card-title">今日暂无手术条目</div>
-      <div class="card-sub">点击右上角“进入分项填报”开始填报。</div>
-    </div>
-  {% endif %}
-
-  <div id="cards" class="cards">
-    {% for item in items %}
-      <div class="handover-card handover-card-enhanced" data-index="{{ forloop.counter0 }}">
-        <div class="handover-meta">
-          <div class="handover-meta-item"><span class="k">科室</span><span class="v">{{ item.department_text|default:"-" }}</span></div>
-          <div class="handover-meta-item"><span class="k">姓名</span><span class="v">{{ item.patient_name|default:"-" }}</span></div>
-          <div class="handover-meta-item"><span class="k">年龄</span><span class="v">{{ item.age|default:"-" }}</span></div>
+    <div class="card" style="margin-bottom:12px;">
+      <div class="card-title">检查项</div>
+      <div class="kv compact" style="margin-top:8px; display:grid; grid-template-columns: repeat(2, 1fr); gap:8px;">
+        <div>
+          <span class="k">标本交接</span>
+          <span class="v">{% if session.specimen_handover_status == 'yes' or session.specimen_handover_status == '√' %}✅{% elif session.specimen_handover_status == 'no' or session.specimen_handover_status == '×' %}❌{% elif session.specimen_handover_status == 'other' %}其他{% else %}-{% endif %} {{ session.specimen_handover_note|default:"" }}</span>
         </div>
-        <div class="section" style="margin-top:10px;">
-          <div class="detail-row">
-            <div class="card-title">手术名称</div>
-            <div class="detail-value"><span class="badge">#{{ forloop.counter }}</span> {{ item.surgery_name|default:"（未填写手术名称）" }}</div>
+        <div>
+          <span class="k">层流运行</span>
+          <span class="v">{% if session.laminar_flow_running_status == 'yes' or session.laminar_flow_running_status == '√' %}✅{% elif session.laminar_flow_running_status == 'no' or session.laminar_flow_running_status == '×' %}❌{% elif session.laminar_flow_running_status == 'other' %}其他{% else %}-{% endif %} {{ session.laminar_flow_running_note|default:"" }}</span>
+        </div>
+        <div>
+          <span class="k">生物监测</span>
+          <span class="v">{% if session.bio_monitoring_status == 'yes' or session.bio_monitoring_status == '√' %}✅{% elif session.bio_monitoring_status == 'no' or session.bio_monitoring_status == '×' %}❌{% elif session.bio_monitoring_status == 'other' %}其他{% else %}-{% endif %} {{ session.bio_monitoring_note|default:"" }}</span>
+        </div>
+        <div>
+          <span class="k">急救车</span>
+          <span class="v">{% if session.crash_cart_status == 'yes' or session.crash_cart_status == '√' %}✅{% elif session.crash_cart_status == 'no' or session.crash_cart_status == '×' %}❌{% elif session.crash_cart_status == 'other' %}其他{% else %}-{% endif %} {{ session.crash_cart_note|default:"" }}</span>
+        </div>
+        <div>
+          <span class="k">消防安全</span>
+          <span class="v">{% if session.fire_safety_status == 'yes' or session.fire_safety_status == '√' %}✅{% elif session.fire_safety_status == 'no' or session.fire_safety_status == '×' %}❌{% elif session.fire_safety_status == 'other' %}其他{% else %}-{% endif %} {{ session.fire_safety_note|default:"" }}</span>
+        </div>
+        <div>
+          <span class="k">钥匙管理</span>
+          <span class="v">{% if session.key_management_status == 'yes' or session.key_management_status == '√' %}✅{% elif session.key_management_status == 'no' or session.key_management_status == '×' %}❌{% elif session.key_management_status == 'other' %}其他{% else %}-{% endif %} {{ session.key_management_note|default:"" }}</span>
+        </div>
+        <div>
+          <span class="k">其它合格证收纳</span>
+          <span class="v">{% if session.certs_in_place_status == 'yes' or session.certs_in_place_status == '√' %}✅{% elif session.certs_in_place_status == 'no' or session.certs_in_place_status == '×' %}❌{% elif session.certs_in_place_status == 'other' %}其他{% else %}-{% endif %} {{ session.certs_in_place_note|default:"" }}</span>
+        </div>
+        <div><span class="k">其它事件</span><span class="v">{{ session.other_incidents|default:"-"|linebreaksbr }}</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="handover-tab-panel" data-panel="surgery">
+    {% if items|length == 0 %}
+      <div class="card">
+        <div class="card-title">今日暂无手术条目</div>
+        <div class="card-sub">点击右上角“进入分项填报”开始填报。</div>
+      </div>
+    {% endif %}
+
+    <div id="cards" class="cards">
+      {% for item in items %}
+        <div class="handover-card handover-card-enhanced" data-index="{{ forloop.counter0 }}">
+          <div class="handover-meta">
+            <div class="handover-meta-item"><span class="k">科室</span><span class="v">{{ item.department_text|default:"-" }}</span></div>
+            <div class="handover-meta-item"><span class="k">姓名</span><span class="v">{{ item.patient_name|default:"-" }}</span></div>
+            <div class="handover-meta-item"><span class="k">年龄</span><span class="v">{{ item.age|default:"-" }}</span></div>
           </div>
-          <div class="detail-row">
-            <div class="card-title">评估/访视</div>
-            <div class="detail-value compact">
-              <span class="pair">输血前9项：{{ item.blood_transfusion_checks|default:"-" }}</span>
-              <span class="pair">压疮评估单：{{ item.pressure_ulcer_assessment|default:"-" }}</span>
-              <span class="pair">皮肤情况：{{ item.skin_condition|default:"-" }}</span>
-              <span class="pair">术前访视：{{ item.preop_visit|default:"-" }}</span>
+          <div class="section" style="margin-top:10px;">
+            <div class="detail-row">
+              <div class="card-title">手术名称</div>
+              <div class="detail-value"><span class="badge">#{{ forloop.counter }}</span> {{ item.surgery_name|default:"（未填写手术名称）" }}</div>
+            </div>
+            <div class="detail-row">
+              <div class="card-title">评估/访视</div>
+              <div class="detail-value compact">
+                <span class="pair">输血前9项：{% if item.blood_transfusion_checks == '√' or item.blood_transfusion_checks == 'yes' %}✅{% elif item.blood_transfusion_checks == '×' or item.blood_transfusion_checks == 'no' %}❌{% else %}{{ item.blood_transfusion_checks|default:"-" }}{% endif %}</span>
+                <span class="pair">压疮评估单：{% if item.pressure_ulcer_assessment == '√' or item.pressure_ulcer_assessment == 'yes' %}✅{% elif item.pressure_ulcer_assessment == '×' or item.pressure_ulcer_assessment == 'no' %}❌{% else %}{{ item.pressure_ulcer_assessment|default:"-" }}{% endif %}</span>
+                <span class="pair">皮肤情况：{{ item.skin_condition|default:"-" }}</span>
+                <span class="pair">术前访视：{% if item.preop_visit == '√' or item.preop_visit == 'yes' %}✅{% elif item.preop_visit == '×' or item.preop_visit == 'no' %}❌{% else %}{{ item.preop_visit|default:"-" }}{% endif %}</span>
+              </div>
+            </div>
+            <div class="detail-row">
+              <div class="card-title">特殊病情交接</div>
+              <div class="detail-value">{{ item.special_handover|default:"-"|linebreaksbr }}</div>
+            </div>
+            <div class="detail-row">
+              <div class="card-title">特殊器械准备</div>
+              <div class="detail-value">{{ item.special_instruments|default:"-"|linebreaksbr }}</div>
             </div>
           </div>
-          <div class="detail-row">
-            <div class="card-title">特殊器械准备</div>
-            <div class="detail-value">{{ item.special_instruments|default:"-"|linebreaksbr }}</div>
-          </div>
         </div>
-      </div>
-    {% endfor %}
-  </div>
+      {% endfor %}
+    </div>
 
-  {% if items|length > 0 %}
-  <div class="pager">
-    <button class="btn" id="prevBtn" type="button">上一张</button>
-    <div class="pager-mid"><span id="pos">1</span> / {{ items|length }}</div>
-    <button class="btn" id="nextBtn" type="button">下一张</button>
-  </div>
-  {% endif %}
+    {% if items|length > 0 %}
+    <div class="pager">
+      <button class="btn small" id="prevBtn" type="button">上一张</button>
+      <div class="pager-mid"><span id="pos">1</span> / {{ items|length }}</div>
+      <button class="btn small" id="nextBtn" type="button">下一张</button>
+    </div>
+    {% endif %}
+  </section>
 </div>
 
 <script>
   (function(){
+    const tabBtns = Array.from(document.querySelectorAll('.handover-tab-btn'));
+    const tabPanels = Array.from(document.querySelectorAll('.handover-tab-panel'));
+    function activateTab(target){
+      tabBtns.forEach((btn) => btn.classList.toggle('is-active', btn.dataset.tab === target));
+      tabPanels.forEach((panel) => panel.classList.toggle('is-active', panel.dataset.panel === target));
+    }
+    tabBtns.forEach((btn) => btn.addEventListener('click', () => activateTab(btn.dataset.tab)));
+
     const cards = Array.from(document.querySelectorAll('.handover-card'));
     if (!cards.length) return;
 

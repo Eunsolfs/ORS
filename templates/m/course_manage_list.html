@@ -5,7 +5,7 @@
   <div class="topbar-title">课程管理（{{ department.name }}）</div>
   <div class="topbar-actions">
     <a class="btn ghost" href="{% url 'course_list' dept_code=dept_code %}">返回课程</a>
-    <a class="btn ghost" href="{% url 'media_library_page' dept_code=dept_code %}">图片管理库</a>
+    <a class="btn ghost" href="{% url 'media_library_page' dept_code=dept_code %}">媒体库</a>
     <a class="btn primary" href="{% url 'course_create' dept_code=dept_code %}">新增教程</a>
   </div>
 </div>

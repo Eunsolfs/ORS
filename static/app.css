@@ -187,3 +187,20 @@ input[type="radio"], input[type="checkbox"]{accent-color:var(--primary)}
 }
 .qr-modal-hint{color:var(--muted);font-size:12px;margin-top:10px}
 .qr-modal-actions{margin-top:12px;display:flex;justify-content:center}
+@media (max-width:640px){
+  .topbar{
+    align-items:flex-start;
+    flex-direction:column;
+  }
+  .topbar-actions{
+    width:100%;
+    flex-wrap:wrap;
+    gap:6px;
+  }
+  .btn{
+    padding:8px 10px;
+    border-radius:10px;
+    font-size:13px;
+    box-shadow:0 2px 8px rgba(24,98,71,.18);
+  }
+}

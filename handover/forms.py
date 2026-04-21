@@ -11,14 +11,14 @@ class _TriRadio(forms.RadioSelect):
 
 
 TRI_CHOICES = [
-    ("yes", "√"),
-    ("no", "×"),
+    ("yes", "✅"),
+    ("no", "❌"),
     ("other", "其他"),
 ]
 
 YES_NO_CHOICES = [
-    ("√", "√"),
-    ("×", "×"),
+    ("√", "✅"),
+    ("×", "❌"),
 ]
 
 SKIN_CHOICES = [
