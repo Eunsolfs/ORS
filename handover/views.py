@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import io
+import calendar
 from datetime import date as date_type
+from datetime import time as time_type
+from datetime import timedelta
 
 from django.contrib.auth.decorators import login_required
 from django.http import Http404
@@ -37,6 +40,21 @@ def _parse_date_yyyy_mm_dd(s: str) -> date_type:
 def _can_manage_all(user, department) -> bool:
     membership = DepartmentMember.objects.filter(user=user, department=department, is_active=True).first()
     return bool(user.is_superuser or (membership and membership.role_in_department == DepartmentMember.Role.ADMIN))
+
+
+def _business_handover_date(department, dt=None) -> date_type:
+    current = timezone.localtime(dt) if dt else timezone.localtime()
+    cutoff_time = getattr(department, "handover_cutoff_time", None) or time_type(hour=8, minute=10)
+    if current.time() < cutoff_time:
+        return current.date() - timedelta(days=1)
+    return current.date()
+
+
+def _ensure_member_can_edit_target_date(request, department, target_date: date_type):
+    if _can_manage_all(request.user, department):
+        return
+    if target_date != _business_handover_date(department):
+        raise PermissionDenied("普通成员仅可编辑当前值班日交班，历史交班仅可查看")
 
 
 def _get_existing_session(department, target_date: date_type):
@@ -89,7 +107,7 @@ def m_home(request, dept_code: str):
     department = get_active_department_by_code(dept_code)
     if not department:
         raise Http404("科室不存在")
-    today = timezone.localdate()
+    today = _business_handover_date(department)
     membership = DepartmentMember.objects.filter(user=request.user, department=department, is_active=True).first()
     role_in_department = membership.role_in_department if membership else DepartmentMember.Role.MEMBER
 
@@ -117,7 +135,7 @@ def m_home(request, dept_code: str):
 @require_department_roles(DepartmentMember.Role.ADMIN, DepartmentMember.Role.MEMBER)
 def handover_today(request, dept_code: str):
     department = request.department  # type: ignore[attr-defined]
-    today = timezone.localdate()
+    today = _business_handover_date(department)
     can_manage_all = _can_manage_all(request.user, department)
 
     session, created = _get_or_build_session(department=department, target_date=today, user=request.user)
@@ -165,9 +183,87 @@ def handover_by_date(request, dept_code: str, date: str):
 
 @login_required
 @require_department_roles(DepartmentMember.Role.ADMIN, DepartmentMember.Role.MEMBER)
+def handover_history(request, dept_code: str):
+    department = request.department  # type: ignore[attr-defined]
+    can_manage_all = _can_manage_all(request.user, department)
+    business_today = _business_handover_date(department)
+    selected_date_raw = (request.GET.get("date") or "").strip()
+
+    try:
+        selected_year = int((request.GET.get("year") or business_today.year))
+    except (TypeError, ValueError):
+        selected_year = business_today.year
+    try:
+        selected_month = int((request.GET.get("month") or business_today.month))
+    except (TypeError, ValueError):
+        selected_month = business_today.month
+
+    selected_month = min(max(selected_month, 1), 12)
+    all_years = sorted(
+        HandoverSession.objects.filter(department=department)
+        .dates("handover_date", "year", order="DESC"),
+        reverse=True,
+    )
+    year_options = [d.year for d in all_years] or [business_today.year]
+    if selected_year not in year_options:
+        selected_year = year_options[0]
+
+    day_list = []
+    if selected_date_raw:
+        selected_day = _parse_date_yyyy_mm_dd(selected_date_raw)
+        session = _get_existing_session(department=department, target_date=selected_day)
+        day_list.append(
+            {
+                "handover_date": selected_day,
+                "session": session,
+                "items_count": session.items.count() if session else 0,
+            }
+        )
+    else:
+        _, month_days = calendar.monthrange(selected_year, selected_month)
+        month_start = date_type(selected_year, selected_month, 1)
+        month_end = date_type(selected_year, selected_month, month_days)
+        sessions = {
+            s.handover_date: s
+            for s in HandoverSession.objects.filter(
+                department=department, handover_date__gte=month_start, handover_date__lte=month_end
+            )
+            .prefetch_related("items")
+            .order_by("-handover_date")
+        }
+        for d in range(month_days, 0, -1):
+            curr_day = date_type(selected_year, selected_month, d)
+            curr_session = sessions.get(curr_day)
+            day_list.append(
+                {
+                    "handover_date": curr_day,
+                    "session": curr_session,
+                    "items_count": curr_session.items.count() if curr_session else 0,
+                }
+            )
+
+    return render(
+        request,
+        "m/handover_history.html",
+        {
+            "department": department,
+            "dept_code": dept_code,
+            "rows": day_list,
+            "year_options": year_options,
+            "month_options": list(range(1, 13)),
+            "selected_year": selected_year,
+            "selected_month": selected_month,
+            "selected_date": selected_date_raw,
+            "can_manage_all": can_manage_all,
+        },
+    )
+
+
+@login_required
+@require_department_roles(DepartmentMember.Role.ADMIN, DepartmentMember.Role.MEMBER)
 def handover_fill_today(request, dept_code: str):
     department = request.department  # type: ignore[attr-defined]
-    today = timezone.localdate()
+    today = _business_handover_date(department)
     session, _ = _get_or_build_session(department=department, target_date=today, user=request.user)
     return _handover_fill_overview(request, dept_code=dept_code, session=session, target_date=today)
 
@@ -177,6 +273,7 @@ def handover_fill_today(request, dept_code: str):
 def handover_fill_by_date(request, dept_code: str, date: str):
     department = request.department  # type: ignore[attr-defined]
     target_date = _parse_date_yyyy_mm_dd(date)
+    _ensure_member_can_edit_target_date(request, department, target_date)
     session, _ = _get_or_build_session(department=department, target_date=target_date, user=request.user)
     return _handover_fill_overview(request, dept_code=dept_code, session=session, target_date=target_date)
 
@@ -219,7 +316,8 @@ def _session_fill_statuses(session: HandoverSession):
 
 
 def _redirect_fill_overview(dept_code: str, target_date: date_type):
-    today = timezone.localdate()
+    department = get_active_department_by_code(dept_code)
+    today = _business_handover_date(department) if department else timezone.localdate()
     if target_date == today:
         return redirect("handover_fill_today", dept_code=dept_code)
     return redirect("handover_fill_by_date", dept_code=dept_code, date=target_date)
@@ -227,7 +325,7 @@ def _redirect_fill_overview(dept_code: str, target_date: date_type):
 
 def _handover_fill_overview(request, dept_code: str, session: HandoverSession, target_date: date_type):
     statuses = _session_fill_statuses(session)
-    is_today = target_date == timezone.localdate()
+    is_today = target_date == _business_handover_date(session.department)
     return render(
         request,
         "m/handover_fill_overview.html",
@@ -243,7 +341,8 @@ def _handover_fill_overview(request, dept_code: str, session: HandoverSession, t
 
 
 def _redirect_fill_items(dept_code: str, target_date: date_type):
-    today = timezone.localdate()
+    department = get_active_department_by_code(dept_code)
+    today = _business_handover_date(department) if department else timezone.localdate()
     if target_date == today:
         return redirect("handover_fill_section_today", dept_code=dept_code, section="items")
     return redirect("handover_fill_section_by_date", dept_code=dept_code, date=target_date, section="items")
@@ -268,7 +367,7 @@ def _handover_fill_items_list(request, dept_code: str, session: HandoverSession,
             "department": session.department,
             "session": session,
             "target_date": target_date,
-            "is_today": target_date == timezone.localdate(),
+            "is_today": target_date == _business_handover_date(session.department),
             "items": items,
         },
     )
@@ -303,7 +402,7 @@ def _handover_fill_item_form(
             "department": session.department,
             "session": session,
             "target_date": target_date,
-            "is_today": target_date == timezone.localdate(),
+            "is_today": target_date == _business_handover_date(session.department),
             "form": form,
             "item": item,
         },
@@ -314,7 +413,7 @@ def _handover_fill_item_form(
 @require_department_roles(DepartmentMember.Role.ADMIN, DepartmentMember.Role.MEMBER)
 def handover_fill_section_today(request, dept_code: str, section: str):
     department = request.department  # type: ignore[attr-defined]
-    today = timezone.localdate()
+    today = _business_handover_date(department)
     session, _ = _get_or_build_session(department=department, target_date=today, user=request.user)
     return _handover_fill_section(request, dept_code=dept_code, session=session, target_date=today, section=section)
 
@@ -324,6 +423,7 @@ def handover_fill_section_today(request, dept_code: str, section: str):
 def handover_fill_section_by_date(request, dept_code: str, date: str, section: str):
     department = request.department  # type: ignore[attr-defined]
     target_date = _parse_date_yyyy_mm_dd(date)
+    _ensure_member_can_edit_target_date(request, department, target_date)
     session, _ = _get_or_build_session(department=department, target_date=target_date, user=request.user)
     return _handover_fill_section(
         request, dept_code=dept_code, session=session, target_date=target_date, section=section
@@ -353,7 +453,7 @@ def _handover_fill_section(
                 "department": session.department,
                 "session": session,
                 "target_date": target_date,
-                "is_today": target_date == timezone.localdate(),
+                "is_today": target_date == _business_handover_date(session.department),
                 "form": form,
             },
         )
@@ -377,7 +477,7 @@ def _handover_fill_section(
                 "department": session.department,
                 "session": session,
                 "target_date": target_date,
-                "is_today": target_date == timezone.localdate(),
+                "is_today": target_date == _business_handover_date(session.department),
                 "form": form,
             },
         )
@@ -392,7 +492,7 @@ def _handover_fill_section(
 @require_department_roles(DepartmentMember.Role.ADMIN, DepartmentMember.Role.MEMBER)
 def handover_fill_item_create_today(request, dept_code: str):
     department = request.department  # type: ignore[attr-defined]
-    today = timezone.localdate()
+    today = _business_handover_date(department)
     session, _ = _get_or_build_session(department=department, target_date=today, user=request.user)
     return _handover_fill_item_form(request, dept_code=dept_code, session=session, target_date=today)
 
@@ -402,6 +502,7 @@ def handover_fill_item_create_today(request, dept_code: str):
 def handover_fill_item_create_by_date(request, dept_code: str, date: str):
     department = request.department  # type: ignore[attr-defined]
     target_date = _parse_date_yyyy_mm_dd(date)
+    _ensure_member_can_edit_target_date(request, department, target_date)
     session, _ = _get_or_build_session(department=department, target_date=target_date, user=request.user)
     return _handover_fill_item_form(request, dept_code=dept_code, session=session, target_date=target_date)
 
@@ -410,7 +511,7 @@ def handover_fill_item_create_by_date(request, dept_code: str, date: str):
 @require_department_roles(DepartmentMember.Role.ADMIN, DepartmentMember.Role.MEMBER)
 def handover_fill_item_edit_today(request, dept_code: str, item_id: int):
     department = request.department  # type: ignore[attr-defined]
-    today = timezone.localdate()
+    today = _business_handover_date(department)
     session = _get_existing_session(department=department, target_date=today)
     if not session:
         raise Http404("当前交班不存在")
@@ -425,6 +526,7 @@ def handover_fill_item_edit_today(request, dept_code: str, item_id: int):
 def handover_fill_item_edit_by_date(request, dept_code: str, date: str, item_id: int):
     department = request.department  # type: ignore[attr-defined]
     target_date = _parse_date_yyyy_mm_dd(date)
+    _ensure_member_can_edit_target_date(request, department, target_date)
     session = _get_existing_session(department=department, target_date=target_date)
     if not session:
         raise Http404("当前交班不存在")
@@ -442,7 +544,7 @@ def handover_fill_item_delete_today(request, dept_code: str, item_id: int):
     if request.method != "POST":
         return HttpResponseNotAllowed(["POST"])
     department = request.department  # type: ignore[attr-defined]
-    today = timezone.localdate()
+    today = _business_handover_date(department)
     session = _get_existing_session(department=department, target_date=today)
     if not session:
         raise Http404("当前交班不存在")
@@ -461,6 +563,7 @@ def handover_fill_item_delete_by_date(request, dept_code: str, date: str, item_i
         return HttpResponseNotAllowed(["POST"])
     department = request.department  # type: ignore[attr-defined]
     target_date = _parse_date_yyyy_mm_dd(date)
+    _ensure_member_can_edit_target_date(request, department, target_date)
     session = _get_existing_session(department=department, target_date=target_date)
     if not session:
         raise Http404("当前交班不存在")

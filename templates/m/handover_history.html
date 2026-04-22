@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}历史交班 - ORS{% endblock %}
+{% block content %}
+<div class="topbar">
+  <div class="topbar-title">历史交班</div>
+  <div class="topbar-actions">
+    <a class="btn ghost" href="{% url 'm_home' dept_code=dept_code %}">返回首页</a>
+  </div>
+</div>
+
+<div class="container">
+  <form class="card form" method="get" style="margin-bottom:12px;">
+    <div class="grid2">
+      <div class="field">
+        <label class="label">年份</label>
+        <select name="year">
+          {% for y in year_options %}
+            <option value="{{ y }}" {% if y == selected_year %}selected{% endif %}>{{ y }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="field">
+        <label class="label">月份</label>
+        <select name="month">
+          {% for m in month_options %}
+            <option value="{{ m }}" {% if m == selected_month %}selected{% endif %}>{{ m }} 月</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="field">
+        <label class="label">按日期查询</label>
+        <input type="date" name="date" value="{{ selected_date }}" />
+      </div>
+    </div>
+    <button class="btn primary" type="submit">查询</button>
+  </form>
+
+  <div class="list">
+    {% for row in rows %}
+      <div class="card">
+        <div class="card-title">{{ row.handover_date }}</div>
+        {% if row.session %}
+          <div class="card-sub">
+            择期：{{ row.session.elective_count|default:"-" }}，急诊：{{ row.session.emergency_count|default:"-" }}，
+            抢救：{{ row.session.rescue_count|default:"-" }}，手术条目：{{ row.items_count }}
+          </div>
+          <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
+            <a class="btn small ghost" href="{% url 'handover_by_date' dept_code=dept_code date=row.handover_date %}">查看</a>
+            {% if can_manage_all %}
+              <a class="btn small primary" href="{% url 'handover_fill_by_date' dept_code=dept_code date=row.handover_date %}">编辑</a>
+            {% endif %}
+          </div>
+        {% else %}
+          <div class="card-sub">当日暂无交班数据</div>
+          <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
+            <a class="btn small ghost" href="{% url 'handover_by_date' dept_code=dept_code date=row.handover_date %}">查看</a>
+            {% if can_manage_all %}
+              <a class="btn small primary" href="{% url 'handover_fill_by_date' dept_code=dept_code date=row.handover_date %}">新建/编辑</a>
+            {% endif %}
+          </div>
+        {% endif %}
+      </div>
+    {% empty %}
+      <div class="card"><div class="card-sub">暂无历史交班数据。</div></div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

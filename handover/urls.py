@@ -5,6 +5,7 @@ from . import views
 urlpatterns = [
     path("<str:dept_code>/", views.m_home, name="m_home"),
     path("<str:dept_code>/handover/today/", views.handover_today, name="handover_today"),
+    path("<str:dept_code>/handover/history/", views.handover_history, name="handover_history"),
     path("<str:dept_code>/handover/today/fill/", views.handover_fill_today, name="handover_fill_today"),
     path(
         "<str:dept_code>/handover/today/fill/<str:section>/",

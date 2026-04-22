@@ -103,15 +103,26 @@ def _apply_daily_handover_sheet(ws, department, target_date: date_type, session:
             f"日期 {target_date}；"
             f"择期 {session.elective_count or 0} 台；急诊 {session.emergency_count or 0} 台；"
             f"抢救/特殊 {session.rescue_count or 0} 台；"
-            f"备注：{(session.notes or '').strip() or '无'}；"
             f"交班人 _________；接班人 _________"
         ),
     ).alignment = left_alignment
     ws.row_dimensions[2].height = 24
 
-    ws.merge_cells(start_row=3, start_column=1, end_row=3, end_column=col_count)
+    notes_text = (session.notes or "").strip()
+    current_row = 3
+    if notes_text:
+        ws.merge_cells(start_row=current_row, start_column=1, end_row=current_row, end_column=col_count)
+        ws.cell(
+            row=current_row,
+            column=1,
+            value=f"备注：{notes_text}",
+        ).alignment = left_alignment
+        ws.row_dimensions[current_row].height = 24
+        current_row += 1
+
+    ws.merge_cells(start_row=current_row, start_column=1, end_row=current_row, end_column=col_count)
     ws.cell(
-        row=3,
+        row=current_row,
         column=1,
         value=(
             f"标本交接：{_tri_status_label(session.specimen_handover_status)} {session.specimen_handover_note or ''}；"
@@ -120,11 +131,12 @@ def _apply_daily_handover_sheet(ws, department, target_date: date_type, session:
             f"急救车：{_tri_status_label(session.crash_cart_status)} {session.crash_cart_note or ''}"
         ),
     ).alignment = left_alignment
-    ws.row_dimensions[3].height = 24
+    ws.row_dimensions[current_row].height = 24
+    current_row += 1
 
-    ws.merge_cells(start_row=4, start_column=1, end_row=4, end_column=col_count)
+    ws.merge_cells(start_row=current_row, start_column=1, end_row=current_row, end_column=col_count)
     ws.cell(
-        row=4,
+        row=current_row,
         column=1,
         value=(
             f"消防安全：{_tri_status_label(session.fire_safety_status)} {session.fire_safety_note or ''}；"
@@ -133,11 +145,12 @@ def _apply_daily_handover_sheet(ws, department, target_date: date_type, session:
             f"其它事件：{(session.other_incidents or '').strip() or '无'}"
         ),
     ).alignment = left_alignment
-    ws.row_dimensions[4].height = 24
+    ws.row_dimensions[current_row].height = 24
 
+    current_row += 1
     ws.append(headers)
-    header_row = 5
-    ws.row_dimensions[5].height = 24
+    header_row = current_row
+    ws.row_dimensions[header_row].height = 24
     for col in range(1, col_count + 1):
         c = ws.cell(row=header_row, column=col)
         c.font = header_font

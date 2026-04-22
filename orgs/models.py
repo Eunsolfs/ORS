@@ -1,3 +1,5 @@
+from datetime import time as time_type
+
 from django.conf import settings
 from django.db import models
 
@@ -6,6 +8,7 @@ class Department(models.Model):
     name = models.CharField(max_length=100, unique=True, verbose_name="科室名称")
     code = models.CharField(max_length=50, unique=True, blank=True, default="", verbose_name="科室编码")
     is_active = models.BooleanField(default=True, verbose_name="是否启用")
+    handover_cutoff_time = models.TimeField(default=time_type(hour=8, minute=10), verbose_name="交班填报截止时间")
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,

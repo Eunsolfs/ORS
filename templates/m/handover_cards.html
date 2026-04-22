@@ -173,9 +173,20 @@
       <div class="kv compact" style="margin-top:8px; display:grid; grid-template-columns: repeat(2, 1fr); gap:8px;">
         <div><span class="k">择期</span><span class="v">{{ session.elective_count|default:"-" }}</span></div>
         <div><span class="k">急诊</span><span class="v">{{ session.emergency_count|default:"-" }}</span></div>
-        <div><span class="k">抢救</span><span class="v">{{ session.rescue_count|default:"-" }}</span></div>
-        <div><span class="k">备注</span><span class="v">{{ session.notes|default:"-"|linebreaksbr }}</span></div>
+        <div>
+          <span class="k">抢救</span>
+          <span class="v">
+            {{ session.rescue_count|default:"-" }}
+            {% if not session.notes %}<span style="color:#5f718f;">（备注：-）</span>{% endif %}
+          </span>
+        </div>
       </div>
+      {% if session.notes %}
+      <div style="margin-top:6px;">
+        <span class="k">备注</span>
+        <span class="v" style="color:#f1730c;font-weight:700;">{{ session.notes|linebreaksbr }}</span>
+      </div>
+      {% endif %}
     </div>
 
     <div class="card" style="margin-bottom:12px;">

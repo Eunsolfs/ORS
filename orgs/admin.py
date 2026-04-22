@@ -7,7 +7,7 @@ from .models import Department, DepartmentMember
 
 @admin.register(Department)
 class DepartmentAdmin(admin.ModelAdmin):
-    list_display = ("name", "code", "is_active")
+    list_display = ("name", "code", "handover_cutoff_time", "is_active")
     search_fields = ("name", "code")
     list_filter = ("is_active",)
     delete_confirmation_template = "admin/orgs/department/delete_confirmation.html"

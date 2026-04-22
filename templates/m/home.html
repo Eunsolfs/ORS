@@ -56,6 +56,11 @@
       <div class="card-sub">固定二维码入口（无需每天更换）</div>
     </a>
 
+    <a class="card tappable" href="{% url 'handover_history' dept_code=dept_code %}">
+      <div class="card-title">历史交班</div>
+      <div class="card-sub">按年月筛选查看每日交班记录</div>
+    </a>
+
     <a class="card tappable" href="{% url 'course_list' dept_code=dept_code %}">
       <div class="card-title">培训课程</div>
       <div class="card-sub">扫码学习图文与视频</div>
