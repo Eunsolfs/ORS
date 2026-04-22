@@ -19,6 +19,7 @@
   {% if role_in_department == "member" %}
     <div class="card" style="margin-bottom:12px;">
       <div class="card-title">今日交班填报（{{ today }}）</div>
+      <div class="card-sub">交班为科室共享报告，成员可在当日持续补充同一份交班内容。</div>
       {% if has_submitted_today %}
         <div class="card-sub">你今日已填报 {{ my_items|length }} 条，下面可直接编辑/删除，也可继续新增。</div>
         <div class="list" style="margin-top:10px;">
@@ -34,10 +35,18 @@
           <a class="btn ghost" href="{% url 'handover_today' dept_code=dept_code %}">查看今日全部交班</a>
         </div>
       {% else %}
-        <div class="card-sub">你今天还没有填报，点击开始填报。</div>
-        <div style="margin-top:10px;">
-          <a class="btn primary" href="{% url 'handover_fill_today' dept_code=dept_code %}">开始填报</a>
-        </div>
+        {% if has_department_submitted_today %}
+          <div class="card-sub">今日科室已上报 {{ today_items_count }} 条交班信息，你尚未上报，可继续补充填报。</div>
+          <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
+            <a class="btn primary" href="{% url 'handover_fill_today' dept_code=dept_code %}">继续填报</a>
+            <a class="btn ghost" href="{% url 'handover_today' dept_code=dept_code %}">查看今日全部交班</a>
+          </div>
+        {% else %}
+          <div class="card-sub">今天还没有人上报交班，点击开始填报。</div>
+          <div style="margin-top:10px;">
+            <a class="btn primary" href="{% url 'handover_fill_today' dept_code=dept_code %}">开始填报</a>
+          </div>
+        {% endif %}
       {% endif %}
     </div>
   {% else %}

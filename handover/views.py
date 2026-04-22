@@ -112,7 +112,8 @@ def m_home(request, dept_code: str):
     role_in_department = membership.role_in_department if membership else DepartmentMember.Role.MEMBER
 
     session, _ = _get_or_build_session(department=department, target_date=today, user=request.user)
-    my_items = (session.items.filter(reported_by=request.user) if session.pk else HandoverItem.objects.none()).order_by("id")
+    all_items = (session.items if session.pk else HandoverItem.objects.none()).order_by("id")
+    my_items = all_items.filter(reported_by=request.user)
 
     can_manage_all = bool(request.user.is_superuser or role_in_department == DepartmentMember.Role.ADMIN)
     return render(
@@ -124,7 +125,9 @@ def m_home(request, dept_code: str):
             "today": today,
             "session": session,
             "my_items": my_items,
+            "today_items_count": all_items.count(),
             "has_submitted_today": my_items.exists(),
+            "has_department_submitted_today": all_items.exists(),
             "role_in_department": role_in_department,
             "can_manage_all": can_manage_all,
         },
