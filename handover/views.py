@@ -212,36 +212,37 @@ def handover_history(request, dept_code: str):
         selected_year = year_options[0]
 
     day_list = []
+    no_data_message = ""
     if selected_date_raw:
         selected_day = _parse_date_yyyy_mm_dd(selected_date_raw)
         session = _get_existing_session(department=department, target_date=selected_day)
-        day_list.append(
-            {
-                "handover_date": selected_day,
-                "session": session,
-                "items_count": session.items.count() if session else 0,
-            }
-        )
+        if session:
+            day_list.append(
+                {
+                    "handover_date": selected_day,
+                    "session": session,
+                    "items_count": session.items.count(),
+                }
+            )
+        else:
+            no_data_message = f"{selected_day} 暂无交班数据。"
     else:
-        _, month_days = calendar.monthrange(selected_year, selected_month)
         month_start = date_type(selected_year, selected_month, 1)
+        _, month_days = calendar.monthrange(selected_year, selected_month)
         month_end = date_type(selected_year, selected_month, month_days)
-        sessions = {
-            s.handover_date: s
-            for s in HandoverSession.objects.filter(
+        sessions = (
+            HandoverSession.objects.filter(
                 department=department, handover_date__gte=month_start, handover_date__lte=month_end
             )
             .prefetch_related("items")
             .order_by("-handover_date")
-        }
-        for d in range(month_days, 0, -1):
-            curr_day = date_type(selected_year, selected_month, d)
-            curr_session = sessions.get(curr_day)
+        )
+        for curr_session in sessions:
             day_list.append(
                 {
-                    "handover_date": curr_day,
+                    "handover_date": curr_session.handover_date,
                     "session": curr_session,
-                    "items_count": curr_session.items.count() if curr_session else 0,
+                    "items_count": curr_session.items.count(),
                 }
             )
 
@@ -258,6 +259,7 @@ def handover_history(request, dept_code: str):
             "selected_month": selected_month,
             "selected_date": selected_date_raw,
             "can_manage_all": can_manage_all,
+            "no_data_message": no_data_message,
         },
     )
 

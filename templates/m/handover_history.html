@@ -36,29 +36,23 @@
   </form>
 
   <div class="list">
+    {% if no_data_message %}
+      <div class="card"><div class="card-sub">{{ no_data_message }}</div></div>
+    {% endif %}
     {% for row in rows %}
       <div class="card">
         <div class="card-title">{{ row.handover_date }}</div>
-        {% if row.session %}
-          <div class="card-sub">
-            择期：{{ row.session.elective_count|default:"-" }}，急诊：{{ row.session.emergency_count|default:"-" }}，
-            抢救：{{ row.session.rescue_count|default:"-" }}，手术条目：{{ row.items_count }}
-          </div>
-          <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
-            <a class="btn small ghost" href="{% url 'handover_by_date' dept_code=dept_code date=row.handover_date %}">查看</a>
-            {% if can_manage_all %}
-              <a class="btn small primary" href="{% url 'handover_fill_by_date' dept_code=dept_code date=row.handover_date %}">编辑</a>
-            {% endif %}
-          </div>
-        {% else %}
-          <div class="card-sub">当日暂无交班数据</div>
-          <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
-            <a class="btn small ghost" href="{% url 'handover_by_date' dept_code=dept_code date=row.handover_date %}">查看</a>
-            {% if can_manage_all %}
-              <a class="btn small primary" href="{% url 'handover_fill_by_date' dept_code=dept_code date=row.handover_date %}">新建/编辑</a>
-            {% endif %}
-          </div>
-        {% endif %}
+        <div class="card-sub">
+          择期：{{ row.session.elective_count|default:"-" }}，急诊：{{ row.session.emergency_count|default:"-" }}，
+          抢救：{{ row.session.rescue_count|default:"-" }}，手术条目：{{ row.items_count }}
+        </div>
+        <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
+          <a class="btn small ghost" href="{% url 'handover_by_date' dept_code=dept_code date=row.handover_date %}">查看</a>
+          {% if can_manage_all %}
+            <a class="btn small ghost" href="{% url 'export_handover_excel' dept_code=dept_code date=row.handover_date %}">导出Excel</a>
+            <a class="btn small primary" href="{% url 'handover_fill_by_date' dept_code=dept_code date=row.handover_date %}">编辑</a>
+          {% endif %}
+        </div>
       </div>
     {% empty %}
       <div class="card"><div class="card-sub">暂无历史交班数据。</div></div>
