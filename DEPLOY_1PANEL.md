@@ -46,6 +46,10 @@ DJANGO_CSRF_TRUSTED_ORIGINS=https://你的域名
 DJANGO_SESSION_COOKIE_SECURE=True
 DJANGO_CSRF_COOKIE_SECURE=True
 DJANGO_SECURE_SSL_REDIRECT=True
+DJANGO_SESSION_IDLE_AGE=43200
+DJANGO_SESSION_ABSOLUTE_AGE=43200
+ORS_LOGIN_CAPTCHA_MODE=alnum
+ORS_LOGIN_CAPTCHA_LENGTH=5
 
 DB_ENGINE=django.db.backends.mysql
 DB_NAME=ors
@@ -97,6 +101,10 @@ DB_USER=ors
 DB_PASSWORD=请填写数据库密码
 DB_HOST=127.0.0.1
 DB_PORT=3306
+DJANGO_SESSION_IDLE_AGE=43200
+DJANGO_SESSION_ABSOLUTE_AGE=43200
+ORS_LOGIN_CAPTCHA_MODE=alnum
+ORS_LOGIN_CAPTCHA_LENGTH=5
 ```
 
 ### 连接地址说明（按你给的规则）
@@ -105,6 +113,13 @@ DB_PORT=3306
 - **非容器环境（当前 Python 网站目录部署）**：使用 `127.0.0.1:3306`
 
 因此本方案里，`DB_HOST` 应写 `127.0.0.1`。
+
+### 登录安全参数说明
+
+- `DJANGO_SESSION_IDLE_AGE`：无操作超时（秒）
+- `DJANGO_SESSION_ABSOLUTE_AGE`：登录后最长保活时长（秒）
+- `ORS_LOGIN_CAPTCHA_MODE`：`digit` / `alpha` / `alnum`
+- `ORS_LOGIN_CAPTCHA_LENGTH`：验证码长度（建议 4-8）
 
 ## 3. 一键初始化（Python 环境）
 
@@ -125,6 +140,13 @@ chmod +x scripts/1panel_python_install.sh
 - 执行 `bootstrap_ors`
 - 执行 `collectstatic`
 - 输出推荐 Gunicorn 启动命令
+
+也可以用统一脚本快速写入登录策略：
+
+```bash
+cd /opt/www/ors
+./scripts/ors.sh auth set-policy --idle-age 43200 --absolute-age 43200 --captcha-mode alnum --captcha-length 5
+```
 
 可选指定端口/worker：
 

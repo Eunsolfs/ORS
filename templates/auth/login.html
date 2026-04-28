@@ -8,14 +8,20 @@
       {% csrf_token %}
       <div class="field">
         <label class="label">账号</label>
-        <input class="input" type="text" name="username" autocomplete="username" required />
+        {{ form.username }}
       </div>
       <div class="field">
         <label class="label">密码</label>
-        <input class="input" type="password" name="password" autocomplete="current-password" required />
+        {{ form.password }}
+      </div>
+      <div class="field">
+        <label class="label">验证码</label>
+        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+          {{ form.captcha }}
+        </div>
       </div>
       {% if form.errors %}
-        <div class="alert">账号或密码错误</div>
+        <div class="alert">账号、密码或验证码错误</div>
       {% endif %}
       <button class="btn primary" type="submit">登录</button>
     </form>

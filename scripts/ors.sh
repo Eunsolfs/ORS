@@ -37,6 +37,9 @@ ORS 管理脚本
   ./scripts/ors.sh upgrade run [--repo-url URL] [--target main|v1.2.0] [--yes] [--skip-test]
   ./scripts/ors.sh upgrade tags
 
+  # 登录安全策略（写入 .env）
+  ./scripts/ors.sh auth set-policy [--env-file .env] [--idle-age 43200] [--absolute-age 43200] [--captcha-mode digit|alpha|alnum] [--captcha-length 5]
+
 常用示例:
   # 首次接入（站点目录没有 .git）
   ./scripts/ors.sh upgrade check --repo-url https://github.com/Eunsolfs/ORS.git
@@ -59,6 +62,7 @@ ORS 管理脚本
   - root update: 修改 root 用户信息（用户名/密码/姓名/启用状态）
   - root reset-password: 仅重置密码（最常用）
   - upgrade 命令封装 scripts/release_manager.py
+  - auth set-policy: 快捷写入登录会话与验证码策略到 .env
 EOF
 }
 
@@ -75,6 +79,7 @@ show_menu() {
   7) 交互升级（y/n/main/tag）
   8) 升级到指定 tag（非交互）
   9) 升级到 main 最新提交（非交互）
+ 10) 一键设置登录安全策略（会话 + 验证码）
   0) 退出
 =============================================
 EOF
@@ -196,6 +201,20 @@ menu_loop() {
         else
           upgrade_run --repo-url "$repo_url" --target main --yes --skip-test
         fi
+        ;;
+      10)
+        local env_file="" idle_age="" absolute_age="" captcha_mode="" captcha_length=""
+        read -r -p "env 文件路径(默认 .env): " env_file
+        read -r -p "无操作超时秒数(默认 43200): " idle_age
+        read -r -p "最大登录时长秒数(默认 43200): " absolute_age
+        read -r -p "验证码模式(digit/alpha/alnum，默认 alnum): " captcha_mode
+        read -r -p "验证码长度(4-8，默认 5): " captcha_length
+        auth_set_policy \
+          --env-file "${env_file:-$ROOT_DIR/.env}" \
+          --idle-age "${idle_age:-43200}" \
+          --absolute-age "${absolute_age:-43200}" \
+          --captcha-mode "${captcha_mode:-alnum}" \
+          --captcha-length "${captcha_length:-5}"
         ;;
       0)
         echo "已退出。"
@@ -373,6 +392,70 @@ upgrade_tags() {
   git -C "$ROOT_DIR" tag --list | sort -V
 }
 
+upsert_env_key() {
+  local file="$1" key="$2" value="$3"
+  if [ ! -f "$file" ]; then
+    touch "$file"
+  fi
+  if grep -q "^${key}=" "$file"; then
+    sed -i.bak "s#^${key}=.*#${key}=${value}#g" "$file"
+    rm -f "${file}.bak"
+  else
+    printf "%s=%s\n" "$key" "$value" >>"$file"
+  fi
+}
+
+auth_set_policy() {
+  local env_file="$ROOT_DIR/.env"
+  local idle_age="43200"
+  local absolute_age="43200"
+  local captcha_mode="alnum"
+  local captcha_length="5"
+
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --env-file) env_file="${2:-}"; shift 2 ;;
+      --idle-age) idle_age="${2:-}"; shift 2 ;;
+      --absolute-age) absolute_age="${2:-}"; shift 2 ;;
+      --captcha-mode) captcha_mode="${2:-}"; shift 2 ;;
+      --captcha-length) captcha_length="${2:-}"; shift 2 ;;
+      *) echo "[ERROR] 未知参数: $1"; exit 1 ;;
+    esac
+  done
+
+  case "$captcha_mode" in
+    digit|alpha|alnum) ;;
+    *)
+      echo "[ERROR] --captcha-mode 仅支持 digit|alpha|alnum"
+      exit 1
+      ;;
+  esac
+
+  if ! [[ "$idle_age" =~ ^[0-9]+$ ]] || ! [[ "$absolute_age" =~ ^[0-9]+$ ]]; then
+    echo "[ERROR] --idle-age / --absolute-age 必须是正整数（单位秒）"
+    exit 1
+  fi
+  if ! [[ "$captcha_length" =~ ^[0-9]+$ ]]; then
+    echo "[ERROR] --captcha-length 必须是整数"
+    exit 1
+  fi
+
+  if [ "$captcha_length" -lt 4 ]; then captcha_length=4; fi
+  if [ "$captcha_length" -gt 8 ]; then captcha_length=8; fi
+
+  upsert_env_key "$env_file" "DJANGO_SESSION_IDLE_AGE" "$idle_age"
+  upsert_env_key "$env_file" "DJANGO_SESSION_ABSOLUTE_AGE" "$absolute_age"
+  upsert_env_key "$env_file" "ORS_LOGIN_CAPTCHA_MODE" "$captcha_mode"
+  upsert_env_key "$env_file" "ORS_LOGIN_CAPTCHA_LENGTH" "$captcha_length"
+
+  echo "[OK] 已写入登录安全策略: $env_file"
+  echo "  DJANGO_SESSION_IDLE_AGE=$idle_age"
+  echo "  DJANGO_SESSION_ABSOLUTE_AGE=$absolute_age"
+  echo "  ORS_LOGIN_CAPTCHA_MODE=$captcha_mode"
+  echo "  ORS_LOGIN_CAPTCHA_LENGTH=$captcha_length"
+  echo "[NEXT] 重启应用后生效。"
+}
+
 main() {
   local module="${1:-}"
   local action="${2:-}"
@@ -401,6 +484,7 @@ main() {
     upgrade:check) upgrade_check "$@" ;;
     upgrade:run) upgrade_run "$@" ;;
     upgrade:tags) upgrade_tags "$@" ;;
+    auth:set-policy) auth_set_policy "$@" ;;
     *)
       usage
       exit 1

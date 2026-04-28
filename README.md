@@ -1,6 +1,6 @@
 # ORS（手术室事项安排系统）
 
-**当前版本：1.4.0**（2026-04-20）
+**当前版本：1.4.6**（2026-04-29）
 
 ## 快速启动（本机开发）
 ```powershell
@@ -20,6 +20,9 @@ copy .env.example .env
 - **宝塔面板**：见 [DEPLOY_BAOTA.md](DEPLOY_BAOTA.md)
 
 ## 新增能力（已完成）
+- 登录安全增强：
+  - 会话支持“无操作超时 + 绝对超时”，默认均为 12 小时
+  - 登录页启用验证码（支持纯数字/纯字母/数字字母混合，可通过 `.env` 配置）
 - 教程编辑页支持可视化富文本（TinyMCE）
 - 教程图片可直接上传并自动插入内容
 - 超级管理员可在后台配置资源存储后端：
@@ -58,6 +61,8 @@ copy .env.example .env
   - `./scripts/ors.sh upgrade check --repo-url https://github.com/Eunsolfs/ORS.git`
 - 交互升级：
   - `./scripts/ors.sh upgrade run --repo-url https://github.com/Eunsolfs/ORS.git`
+- 快捷设置登录策略（会话 + 验证码）：
+  - `./scripts/ors.sh auth set-policy --idle-age 43200 --absolute-age 43200 --captcha-mode alnum --captcha-length 5`
 
 ## 存储配置位置（root）
 - 后台 `SystemStorageSetting` 中设置 `backend` 与对应参数

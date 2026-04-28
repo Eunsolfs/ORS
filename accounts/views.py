@@ -2,6 +2,7 @@ from django.contrib.auth import logout as django_logout
 from django.contrib.auth import views as auth_views
 from django.shortcuts import redirect
 
+from .forms import ORSLoginForm
 from orgs.models import DepartmentMember
 
 
@@ -27,6 +28,7 @@ def root_redirect(request):
 
 class LoginView(auth_views.LoginView):
     template_name = "auth/login.html"
+    authentication_form = ORSLoginForm
 
 
 class LogoutView(auth_views.LogoutView):

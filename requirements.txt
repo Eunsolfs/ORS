@@ -10,6 +10,7 @@ colorama==0.4.6
 cryptography==46.0.7
 cssselect2==0.9.0
 Django==5.1.6
+django-simple-captcha==0.6.3
 django-allauth==0.63.6
 django-environ==0.11.2
 et_xmlfile==2.0.0

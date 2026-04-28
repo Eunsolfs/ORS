@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'captcha',
 
     # Local apps
     'accounts',
@@ -63,6 +64,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'accounts.middleware.SessionAbsoluteTimeoutMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -136,6 +138,22 @@ AUTH_USER_MODEL = "accounts.User"
 LOGIN_URL = "login"
 LOGIN_REDIRECT_URL = "root"
 LOGOUT_REDIRECT_URL = "login"
+
+# 会话控制：
+# 1) 滑动过期（无操作超过 SESSION_COOKIE_AGE 失效）
+# 2) 绝对过期（登录后最多 SESSION_ABSOLUTE_AGE 秒）
+SESSION_COOKIE_AGE = env.int("DJANGO_SESSION_IDLE_AGE", default=60 * 60 * 12)
+SESSION_SAVE_EVERY_REQUEST = True
+SESSION_ABSOLUTE_AGE = env.int("DJANGO_SESSION_ABSOLUTE_AGE", default=60 * 60 * 12)
+
+# 登录验证码配置：
+# ORS_LOGIN_CAPTCHA_MODE: digit | alpha | alnum
+# ORS_LOGIN_CAPTCHA_LENGTH: 4-8（超出范围会自动钳制）
+ORS_LOGIN_CAPTCHA_MODE = env("ORS_LOGIN_CAPTCHA_MODE", default="alnum").strip().lower()
+if ORS_LOGIN_CAPTCHA_MODE not in {"digit", "alpha", "alnum"}:
+    ORS_LOGIN_CAPTCHA_MODE = "alnum"
+ORS_LOGIN_CAPTCHA_LENGTH = env.int("ORS_LOGIN_CAPTCHA_LENGTH", default=5)
+CAPTCHA_CHALLENGE_FUNCT = "accounts.captcha.ors_login_challenge"
 
 CSRF_TRUSTED_ORIGINS = env.list("DJANGO_CSRF_TRUSTED_ORIGINS", default=[])
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")

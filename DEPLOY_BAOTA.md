@@ -27,6 +27,10 @@ DJANGO_SECRET_KEY=请改成你自己的随机密钥
 DJANGO_DEBUG=False
 DJANGO_ALLOWED_HOSTS=你的域名,127.0.0.1,localhost
 DJANGO_CSRF_TRUSTED_ORIGINS=https://你的域名
+DJANGO_SESSION_IDLE_AGE=43200
+DJANGO_SESSION_ABSOLUTE_AGE=43200
+ORS_LOGIN_CAPTCHA_MODE=alnum
+ORS_LOGIN_CAPTCHA_LENGTH=5
 ```
 
 MySQL 示例：
@@ -44,6 +48,7 @@ DB_PORT=3306
 
 - `DJANGO_CSRF_TRUSTED_ORIGINS` 不要额外加引号
 - 脚本不会替你创建 MySQL 数据库和用户，只会使用你提供的连接信息运行迁移
+- 验证码模式支持：`digit`（纯数字）/`alpha`（纯字母）/`alnum`（数字字母混合）
 
 如果你不想手工改 `.env`，也可以在运行安装脚本时传入环境变量，脚本会自动写回 `.env`：
 
@@ -159,6 +164,17 @@ location / {
 - `proxy_set_header Host $host;` 不要写成 `127.0.0.1:$server_port`
 - `X-Forwarded-Proto $scheme` 必须带上，否则 HTTPS 下登录/重定向/cookie 判断可能异常
 - 修改 nginx 后记得重载配置
+
+## 5.1 登录策略快捷配置（可选）
+
+可直接通过统一脚本写入 `.env`：
+
+```bash
+cd /www/wwwroot/ors
+./scripts/ors.sh auth set-policy --idle-age 43200 --absolute-age 43200 --captcha-mode alnum --captcha-length 5
+```
+
+如果你的 `.env` 不在默认路径，可加 `--env-file` 指定。
 
 ## 6. 初始化命令（手工方式）
 

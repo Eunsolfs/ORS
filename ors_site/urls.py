@@ -25,6 +25,7 @@ admin.site.index_title = "ORS 管理"
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path("captcha/", include("captcha.urls")),
     path("", include("accounts.urls")),
     path("m/", include("handover.urls")),
     path("m/", include("training.urls")),
