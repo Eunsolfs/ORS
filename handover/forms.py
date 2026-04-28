@@ -34,6 +34,8 @@ class HandoverSessionSummaryForm(forms.ModelForm):
             "elective_count",
             "emergency_count",
             "rescue_count",
+            "handover_by",
+            "takeover_by",
             "notes",
         ]
         widgets = {

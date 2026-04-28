@@ -180,6 +180,8 @@
             {% if not session.notes %}<span style="color:#5f718f;">（备注：-）</span>{% endif %}
           </span>
         </div>
+        <div><span class="k">交班人</span><span class="v">{{ session.handover_by|default:"-" }}</span></div>
+        <div><span class="k">接班人</span><span class="v">{{ session.takeover_by|default:"-" }}</span></div>
       </div>
       {% if session.notes %}
       <div style="margin-top:6px;">

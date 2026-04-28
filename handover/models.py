@@ -16,6 +16,8 @@ class HandoverSession(models.Model):
     elective_count = models.PositiveSmallIntegerField(null=True, blank=True, verbose_name="择期手术数")
     emergency_count = models.PositiveSmallIntegerField(null=True, blank=True, verbose_name="急诊手术数")
     rescue_count = models.PositiveSmallIntegerField(null=True, blank=True, verbose_name="抢救手术数")
+    handover_by = models.CharField(max_length=50, blank=True, default="", verbose_name="交班人")
+    takeover_by = models.CharField(max_length=50, blank=True, default="", verbose_name="接班人")
     notes = models.TextField(blank=True, default="", verbose_name="备注")
 
     other_incidents = models.TextField(blank=True, default="", verbose_name="其他事件")

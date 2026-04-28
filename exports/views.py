@@ -103,7 +103,8 @@ def _apply_daily_handover_sheet(ws, department, target_date: date_type, session:
             f"日期 {target_date}；"
             f"择期 {session.elective_count or 0} 台；急诊 {session.emergency_count or 0} 台；"
             f"抢救/特殊 {session.rescue_count or 0} 台；"
-            f"交班人 _________；接班人 _________"
+            f"交班人 {(session.handover_by or '').strip() or '_________'}；"
+            f"接班人 {(session.takeover_by or '').strip() or '_________'}"
         ),
     ).alignment = left_alignment
     ws.row_dimensions[2].height = 24

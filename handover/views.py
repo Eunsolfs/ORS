@@ -289,6 +289,8 @@ def _session_fill_statuses(session: HandoverSession):
             session.elective_count is not None,
             session.emergency_count is not None,
             session.rescue_count is not None,
+            bool((session.handover_by or "").strip()),
+            bool((session.takeover_by or "").strip()),
             bool((session.notes or "").strip()),
         ]
     )

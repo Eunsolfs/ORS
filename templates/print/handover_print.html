@@ -57,7 +57,10 @@
     </table>
 
     <div class="footer">
-      <div>择期：{{ session.elective_count|default_if_none:"" }} 台，急诊：{{ session.emergency_count|default_if_none:"" }} 台，抢救/特殊：{{ session.rescue_count|default_if_none:"" }} 台</div>
+      <div>
+        择期：{{ session.elective_count|default_if_none:"" }} 台，急诊：{{ session.emergency_count|default_if_none:"" }} 台，抢救/特殊：{{ session.rescue_count|default_if_none:"" }} 台，
+        交班人：{{ session.handover_by|default:"_________" }}，接班人：{{ session.takeover_by|default:"_________" }}
+      </div>
       <div class="checks">
         <div class="check">标本交接：{{ session.specimen_handover_status }} {{ session.specimen_handover_note }}</div>
         <div class="check">层流运行：{{ session.laminar_flow_running_status }} {{ session.laminar_flow_running_note }}</div>
